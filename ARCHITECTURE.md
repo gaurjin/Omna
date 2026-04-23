@@ -26,21 +26,30 @@ MacBook Air M5
 User: gaurav
 Project path: ~/Developer/omna
 
+## Repositories
+- Public (Python layer): https://github.com/gaurjin/Omna
+- Private (Rust engine): https://github.com/gaurjin/Omna-engine
+- PyPI account: gaurjin (created, not yet published)
+- First commit: 6d5234a
+
 ## Current status
-- CLAUDE.md created
-- .claudeignore created
-- ARCHITECTURE.md created
-- Homebrew installing next
+All 7 build days complete. 112 tests passing.
+README written. Lazy loading complete.
+Multi-platform wheel workflow: .github/workflows/release.yml
+
+**Launch gate — do NOT run `git tag v0.1.0` until:**
+1. Website is live
+2. Launch plan is ready
 
 ## 7-day build plan
 Day 0 — Install Rust, uv, maturin, Claude Code ✓
-Day 1 — maturin scaffold + Polars namespace
-Day 2 — Rust similarity kernel
-Day 3 — embedder.py + index.py
-Day 4 — search() + filter()
-Day 5 — mask_pii() + audit log
-Day 6 — understand() + ask()
-Day 7 — PyPI publish + launch
+Day 1 — maturin scaffold + Polars namespace ✓
+Day 2 — Rust similarity kernel ✓
+Day 3 — embedder.py + index.py ✓
+Day 4 — search() + filter() ✓
+Day 5 — mask_pii() + audit log ✓
+Day 6 — understand() + ask() ✓
+Day 7 — wheels, tests, README, lazy loading, release.yml ✓
 
 ## Differentiators
 1. PII guard as first-class feature
@@ -68,8 +77,8 @@ raw PII to cloud AI.
 - Graphify — installed in omna/ folder, 71x fewer tokens per Claude Code session
 
 ## License model
-- Python layer (omna/ package): MIT — public, github.com/gaurjin/omna
-- Rust engine (src/): Proprietary — private, github.com/gaurjin/omna-engine
+- Python layer (omna/ package): MIT — public, https://github.com/gaurjin/Omna
+- Rust engine (src/): Proprietary — private, https://github.com/gaurjin/Omna-engine
   - Contains: src/lib.rs, src/similarity.rs
   - Never published as source — ships as compiled binary inside pip wheel
   - Source lives in private repo only

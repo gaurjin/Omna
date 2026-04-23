@@ -2,6 +2,10 @@
 target/
 Cargo.lock
 
+# Proprietary Rust source — lives in private repo (github.com/gaurjin/Omna-engine)
+src/
+Cargo.toml
+
 # Python
 __pycache__/
 *.py[cod]
