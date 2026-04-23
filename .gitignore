@@ -1,0 +1,35 @@
+# Rust build output
+target/
+Cargo.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.eggs/
+
+# Compiled Rust extension (built from source, not stored in git)
+*.so
+*.dylib
+*.dll
+
+# Omna runtime data (index files + audit logs — generated, not source)
+.omna/
+
+# Claude Code local settings
+.claude/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Generated output
+graphify-out/

@@ -1,0 +1,89 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "omna"
+version = "0.1.0"
+description = "Semantic search, PII masking, and schema understanding for Polars DataFrames"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "gaurav", email = "gaurjin@gmail.com" },
+]
+keywords = [
+    "polars", "semantic-search", "embeddings", "pii",
+    "nlp", "dataframe", "rust", "fastembed",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Core runtime dependency — everything else is optional.
+# Heavy deps (fastembed, presidio, anthropic) are lazy-loaded inside their
+# respective methods and declared in [project.optional-dependencies] below.
+dependencies = [
+    "polars>=1.0",
+]
+
+[project.urls]
+Homepage   = "https://github.com/gaurjin/omna"
+Repository = "https://github.com/gaurjin/omna"
+Issues     = "https://github.com/gaurjin/omna/issues"
+
+# ── Optional dependency groups ────────────────────────────────────────────────
+# Install the full stack:  pip install omna[embed,pii,ask]
+# Install everything:      pip install omna[all]
+[project.optional-dependencies]
+
+# Required for df.omna.embed(), df.omna.search(), df.omna.filter()
+embed = [
+    "fastembed>=0.8",
+    "numpy>=1.26",
+]
+
+# Required for df.omna.mask_pii() and df.omna.pii_report()
+# Also run:  python -m spacy download en_core_web_lg
+pii = [
+    "presidio-analyzer>=2.2",
+    "presidio-anonymizer>=2.2",
+]
+
+# Required for df.omna.ask()
+# Also set:  export ANTHROPIC_API_KEY=sk-ant-...
+ask = [
+    "anthropic>=0.26",
+]
+
+# All optional features combined
+all = [
+    "omna[embed]",
+    "omna[pii]",
+    "omna[ask]",
+]
+
+# Development tools
+dev = [
+    "pytest>=8.0",
+    "maturin>=1.0",
+    "omna[all]",
+]
+
+# ── Maturin build configuration ───────────────────────────────────────────────
+[tool.maturin]
+# Include the omna/ Python package in the wheel alongside the Rust extension.
+# The Rust extension (_omna) is included automatically from Cargo.toml.
+python-packages = ["omna"]
+# Required by PyO3 when building an extension module.
+features = ["pyo3/extension-module"]

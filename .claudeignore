@@ -1,0 +1,26 @@
+# Rust compilation output
+target/
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+dist/
+*.egg-info/
+wheels/
+
+# Embedding index files
+*.parquet
+omna_index/
+
+# Audit logs
+omna_audit.log
+
+# Git internals
+.git/
+
+# OS files
+.DS_Store

@@ -1,0 +1,133 @@
+name: Release
+
+# Triggers on any tag that looks like v0.1.0, v1.2.3, etc.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+
+  # ── macOS wheels ─────────────────────────────────────────────────────────────
+  # One job per (Python version × platform) combination.
+  # setup-python installs the requested Python; maturin uses it automatically.
+  build-macos:
+    name: macOS ${{ matrix.platform.os }} / py${{ matrix.python-version }}
+    strategy:
+      fail-fast: false          # keep other jobs running if one fails
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        platform:
+          - os: macos-14        # Apple Silicon (aarch64)
+            target: aarch64-apple-darwin
+          - os: macos-13        # Intel (x86_64)
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.platform.target }}
+          args: --release --strip --out dist
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          # Unique name per (platform, Python) so artifacts don't collide
+          name: wheels-${{ matrix.platform.target }}-py${{ matrix.python-version }}
+          path: dist/*.whl
+
+  # ── Linux wheels (manylinux) ─────────────────────────────────────────────────
+  # One job per architecture. The manylinux container contains all Python versions
+  # so we build py3.10, py3.11, py3.12 in a single job with -i.
+  # aarch64 requires QEMU for cross-compilation.
+  build-linux:
+    name: Linux ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (aarch64 cross-compilation only)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          manylinux: auto
+          # -i tells maturin which Python interpreters to build for
+          args: --release --strip --out dist -i python3.10 python3.11 python3.12
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist/*.whl
+
+  # ── Source distribution ───────────────────────────────────────────────────────
+  # The sdist lets pip build from source on platforms we don't have a wheel for.
+  # It requires Rust to be installed on the user's machine.
+  build-sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # ── Publish to PyPI ───────────────────────────────────────────────────────────
+  # Only runs after ALL build jobs succeed. Downloads every wheel + the sdist,
+  # then publishes them all in one shot.
+  publish:
+    name: Publish to PyPI
+    needs: [build-macos, build-linux, build-sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/omna
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*       # matches every wheels-* artifact
+          merge-multiple: true    # flatten into a single dist/ directory
+          path: dist
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: false     # token auth — no OIDC Trusted Publisher needed
