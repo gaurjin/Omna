@@ -26,11 +26,27 @@ omna/
 ├── omna/understand.py     # Schema inference
 └── omna/ask.py            # LLM query layer
 
+## Two-repo structure
+Omna is split across two directories:
+- `~/Developer/Omna` — working repo. All development happens here. src/ is .gitignored.
+- `~/Developer/Omna-engine` — private IP archive (github.com/gaurjin/Omna-engine). Rust source only.
+
+The compiled .so ships in the pip wheel. The Rust source never appears in the public repo.
+
+## Rust sync rule — ALWAYS DO THIS
+Any change to src/lib.rs, src/similarity.rs, or Cargo.toml must be copied to Omna-engine after testing:
+```
+cp src/lib.rs src/similarity.rs ~/Developer/Omna-engine/src/
+cp Cargo.toml Cargo.lock ~/Developer/Omna-engine/
+cd ~/Developer/Omna-engine && git add -A && git commit -m "sync: <description>" && git push
+```
+Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit Omna-engine directly.
+
 ## Coding rules
 - Python first. Only write Rust in src/similarity.rs.
 - Every public method must have a docstring.
 - Never break the df.omna namespace interface.
-- Always run maturin develop after any Rust change.
+- Always run `maturin develop --release` after any Rust change (never plain `maturin develop` — debug builds are 10x slower).
 - Tests live in tests/ and use pytest.
 
 ## Repositories

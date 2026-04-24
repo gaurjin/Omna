@@ -34,6 +34,7 @@ classifiers = [
 # Heavy deps (fastembed, presidio, anthropic) are lazy-loaded inside their
 # respective methods and declared in [project.optional-dependencies] below.
 dependencies = [
+    "faker>=40.15.0",
     "polars>=1.0",
 ]
 

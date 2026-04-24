@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 
-from omna import index          # lightweight: pathlib + polars only
-from _omna import top_k         # Rust extension, no ML models
+from omna import index
+from _omna import top_k_flat, top_k_flat_np  # noqa: F401
 
 _AUDIT_PATH = Path(".omna") / "pii_audit.parquet"
 
@@ -58,7 +59,7 @@ class OmnaFrame:
             index_path: Override the default index location.
 
         Returns:
-            DataFrame of the top k matching rows plus a '_score' column (0–1).
+            DataFrame of the top k matching rows plus a '_score' column (0-1).
         """
         from omna import embedder
         path = Path(index_path) if index_path else _default_index_path(on)
@@ -67,8 +68,10 @@ class OmnaFrame:
                 f"No index for column '{on}'. Run df.omna.embed('{on}') first."
             )
         df, embeddings = index.load(path)
-        query_vec = embedder.embed([query])[0]
-        hits = top_k(query_vec, embeddings, k)
+        query_vec = np.array(embedder.embed([query])[0], dtype=np.float32)
+        dim = embeddings.shape[1]
+        flat_emb = np.ascontiguousarray(embeddings)
+        hits = top_k_flat_np(query_vec, flat_emb, dim, k)
         if not hits:
             return df.clear()
         result = df[list(h[0] for h in hits)].with_columns(
@@ -98,8 +101,10 @@ class OmnaFrame:
                 f"No index for column '{on}'. Run df.omna.embed('{on}') first."
             )
         df, embeddings = index.load(path)
-        concept_vec = embedder.embed([concept])[0]
-        hits = top_k(concept_vec, embeddings, len(embeddings))
+        concept_vec = np.array(embedder.embed([concept])[0], dtype=np.float32)
+        dim = embeddings.shape[1]
+        flat_emb = np.ascontiguousarray(embeddings)
+        hits = top_k_flat_np(concept_vec, flat_emb, dim, len(df))
         above = [h for h in hits if h[1] >= threshold]
         if not above:
             return df.clear()
@@ -107,11 +112,6 @@ class OmnaFrame:
 
     def mask_pii(self, audit_path: str | Path | None = None) -> pl.DataFrame:
         """Redact PII in all string columns and save an audit log to disk.
-
-        Each detected PII span is replaced with its <ENTITY_TYPE> token
-        (e.g. <PERSON>, <EMAIL_ADDRESS>). The audit log is written to
-        .omna/pii_audit.parquet (or *audit_path* if given) so you have
-        a permanent record of what was redacted and from which row.
 
         Args:
             audit_path: Override the default audit log location.
@@ -129,9 +129,6 @@ class OmnaFrame:
     def pii_report(self) -> pl.DataFrame:
         """Scan all string columns and return a PII findings report.
 
-        Does not modify the DataFrame. Each row in the result is one
-        detected PII entity with columns: column, row, entity_type, text, score.
-
         Returns:
             DataFrame of PII findings. Empty (same schema) when none found.
         """
@@ -139,10 +136,7 @@ class OmnaFrame:
         return pii.report(self._df)
 
     def ask(self, question: str, model: str | None = None) -> str:
-        """Answer a natural-language *question* about this DataFrame using Claude.
-
-        Sends the schema and up to 20 sample rows to Claude and returns the
-        answer as a string. Requires the ANTHROPIC_API_KEY environment variable.
+        """Answer a natural-language question about this DataFrame using Claude.
 
         Args:
             question: Any natural-language question about the data.
@@ -150,9 +144,6 @@ class OmnaFrame:
 
         Returns:
             Claude's answer as a string.
-
-        Raises:
-            EnvironmentError: If ANTHROPIC_API_KEY is not set.
         """
         from omna import ask as ask_mod
         kwargs = {"model": model} if model else {}
