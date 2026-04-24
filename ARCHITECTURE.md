@@ -82,3 +82,6 @@ raw PII to cloud AI.
   - Contains: src/lib.rs, src/similarity.rs
   - Never published as source — ships as compiled binary inside pip wheel
   - Source lives in private repo only
+  - Omna-engine repo is live and confirmed private
+  - First commit 81cae3d pushed April 23 2026
+  - src/ protected from public repo via .gitignore entry

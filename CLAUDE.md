@@ -47,7 +47,16 @@ omna/
 [x] Day 5 — PII guard complete
 [x] Day 6 — Understand + ask complete
 [x] Day 7 — Build complete (112 tests passing, README written, lazy loading done, release.yml created)
-[ ] PyPI publish — BLOCKED: do not run `git tag v0.1.0` until website is live and launch plan is ready
+[x] Smoke test passed 7/7 on real data (scripts/smoke_test.py)
+[x] scripts/demo_data.py and scripts/smoke_test.py created
+[x] ANTHROPIC_API_KEY permanently saved to ~/.zshrc
+[x] Omna-engine private repo live: github.com/gaurjin/Omna-engine (commit 81cae3d)
+[x] src/ excluded from public repo via .gitignore
+
+## Next steps
+- Phase B: record demo GIF
+- Phase C: PyPI publish
+- Do NOT run `git tag v0.1.0` until demo is recorded and website is live
 
 ## Git
 - First commit: 6d5234a (main branch)
