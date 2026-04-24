@@ -236,14 +236,12 @@ The Rust kernel is 23 lines. Dot products and norms in machine code, no intermed
 
 ---
 
-## Performance ## Why Omna is fast
+## Why Omna is fast
 Omna inherits Polars' Arrow columnar memory, SIMD vectorization, and zero-copy data structures. The Rust similarity kernel operates on the same memory Polars is already using — no copy into NumPy, no copy into a C buffer.
 
 When you call `df.omna.search()`, the Rust similarity kernel operates directly on the same memory Polars is already using.
 
-> "Polars uses Apache Arrow's columnar memory format with SIMD vectorization — the same memory our Rust similarity kernel operates on directly. On Pandas we'd need to copy data into NumPy arrays first. On Polars it's zero-copy end to end."
-
-> — Ritchie Vink explains the architecture: [I wrote one of the fastest DataFrame libraries](https://pola.rs/posts/i-wrote-one-of-the-fastest-dataframe-libraries/)
+Omna's Rust kernel operates on Polars' Arrow memory directly — no copies, no overhead. [Read how Polars achieves this](https://pola.rs/posts/i-wrote-one-of-the-fastest-dataframe-libraries/)
 
 | | 500k rows · 384-dim | Data copies |
 |---|---|---|
