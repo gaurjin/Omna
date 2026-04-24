@@ -1,6 +1,8 @@
 """Omna — semantic search, PII masking and schema understanding for Polars."""
 from __future__ import annotations
 
+__version__ = "0.1.0"
+
 import polars as pl
 
 from omna.frame import OmnaFrame  # noqa: F401 — registers df.omna namespace
