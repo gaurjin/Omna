@@ -23,6 +23,8 @@ AI is smart but blind. Your data is rich but invisible. Omna is the bridge.
 
 Omna is a Polars namespace plugin. Semantic search, PII masking, and schema understanding — directly on your DataFrames, no new infrastructure required.
 
+![Omna demo](assets/demo.gif)
+
 ---
 
 ## Install
