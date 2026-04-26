@@ -16,7 +16,7 @@ With Omna:
 ```python
 results  = df.omna.search("insurance claim denied", on="text", k=5)
 # Finds ALL of them — including docs that never say "denied" literally.
-# 95ms. 50,000 documents. Zero cloud.
+# 9ms. 50,000 documents. Zero cloud.
 
 filtered = df.omna.filter("insurance claim denied", on="text", threshold=0.73)
 # Every semantically matching document above the threshold.
@@ -212,7 +212,7 @@ df.omna.embed("text")
 # → .omna/text.parquet
 ```
 
-Model: `BAAI/bge-small-en-v1.5` (~130 MB, downloaded once). Embed is a one-time cost. After that, `search()` runs in under 100ms regardless of dataset size.
+Model: `BAAI/bge-small-en-v1.5` (~130 MB, downloaded once). Embed is a one-time cost. After that, `search()` runs in 9ms on 50k rows and 27ms on 500k rows (MacBook Air M5).
 
 | Hardware | 50k rows |
 |---|---|
@@ -266,12 +266,14 @@ The Rust kernel is 23 lines. Dot products and norms in machine code, no intermed
 
 ## Performance
 
-| | 50k rows · 384-dim |
-|---|---|
-| **Omna search** | **~95ms** |
-| **Omna filter** | **~95ms** |
-| Pandas + FAISS | ~25ms setup + index build |
-| Pandas + keyword regex | misses semantic matches |
+| | 50k rows | 500k rows |
+|---|---|---|
+| **Omna search** | **9ms** | **27ms** |
+| **Omna filter** | **9ms** | **27ms** |
+| Pandas + FAISS | ~25ms + index build | ~25ms + index build |
+| Polars keyword regex | 1ms — exact match only | 1ms — exact match only |
+
+Benchmarked on MacBook Air M5, `BAAI/bge-small-en-v1.5` (384-dim), 10-query median, warm index.
 
 Omna inherits Polars' Arrow columnar memory. The Rust similarity kernel operates on the same memory — no copy into NumPy, no copy into a C buffer.
 
