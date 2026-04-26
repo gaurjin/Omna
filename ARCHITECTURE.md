@@ -18,7 +18,21 @@ df.omna.ask("question")          # natural language query via LLM
 ## Tech stack
 - Polars namespace plugin (Python)
 - FastEmbed — local embeddings, no API key
+  - batch_size default: 32 (was 512 — prevents 18 GB RAM spike on large datasets)
+  - chunk_size default: 2000 (was 5000)
+  - gc.collect() called after every chunk to release memory immediately
+  - CoreML warmup on first model load (~30s one-time); prints "Ready." when done
 - Presidio — PII detection, Microsoft open source
+  - _REAL_PII_TYPES: entity allow-list (excludes LOCATION, NRP, DATE_TIME — which
+    cause false positives on ID-like columns such as ProductId)
+  - _MIN_SCORE = 0.35, _HIT_RATE_THRESHOLD = 0.10
+  - _SPACY_UNUSED_PIPES: tagger, parser, attribute_ruler, lemmatizer, tok2vec
+    disabled at worker startup for ~2x throughput; NER accuracy is unchanged
+    (the ner component in en_core_web_lg has its own internal representations)
+  - mask_pii(fast=True): regex-only mode (~10s per 50k rows) — catches email,
+    phone, SSN, credit card, URL; does NOT catch person names in prose
+  - mask_pii(fast=False): full Presidio + spaCy NER-only (~91s per 50k rows)
+  - Dedup + single ProcessPoolExecutor + simultaneous column submission
 - Rust src/similarity.rs — cosine similarity kernel, rayon parallel
 - maturin — builds Rust-Python wheels
 - uv — Python package manager
@@ -153,13 +167,22 @@ Project path: ~/Developer/Omna
 - First commit: 6d5234a
 
 ## Current status
-All 7 build days complete. 112 tests passing.
-README written. Lazy loading complete.
+All 7 build days complete. 113 tests passing. Rich formatted output across all methods.
+PII false-positive suppression working. XXXX-skip fix applied (mask_pii no longer
+double-redacts government pre-redacted tokens).
 Multi-platform wheel workflow: .github/workflows/release.yml
 
+Demo dataset: Gretel PII Benchmark (acquired by NVIDIA) — 50,000 synthetic documents
+(invoices, NDAs, insurance policies, shipping records) with real PII embedded.
+Search index built at .omna/text.parquet.
+
+Demo videos recorded:
+- assets/demo_shield.gif — PII audit + redaction (demo_shield.py)
+- assets/demo_sword.gif — semantic search + filter + ask (demo_sword.py)
+
 **Launch gate — do NOT run `git tag v0.1.0` until:**
-1. Website is live
-2. Launch plan is ready
+1. Website is live with demo GIFs embedded
+2. PyPI package published
 
 ## 7-day build plan
 Day 0 — Install Rust, uv, maturin, Claude Code ✓

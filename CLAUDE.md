@@ -62,17 +62,32 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 [x] Day 4 — Search + filter complete
 [x] Day 5 — PII guard complete
 [x] Day 6 — Understand + ask complete
-[x] Day 7 — Build complete (112 tests passing, README written, lazy loading done, release.yml created)
+[x] Day 7 — Build complete (113 tests passing, README written, lazy loading done, release.yml created)
 [x] Smoke test passed 7/7 on real data (scripts/smoke_test.py)
-[x] scripts/demo_data.py and scripts/smoke_test.py created
 [x] ANTHROPIC_API_KEY permanently saved to ~/.zshrc
 [x] Omna-engine private repo live: github.com/gaurjin/Omna-engine (commit 81cae3d)
 [x] src/ excluded from public repo via .gitignore
+[x] embedder.py memory fix: batch_size=32, chunk_size=2000, gc.collect() per chunk, CoreML warmup
+[x] Rich output for all 6 methods (search, filter, pii_report, mask_pii, ask — consistent with understand())
+[x] PII false-positive fix: _REAL_PII_TYPES allow-list, hit-rate threshold (>10%), unique-hit guard
+[x] mask_pii() XXXX-skip fix: government pre-redacted tokens no longer double-redacted
+[x] mask_pii() fast=True mode: regex-only, catches email/phone/SSN/URL
+[x] mask_pii() full mode optimised: spaCy NER-only pipeline + dedup + single pool
+[x] Demo dataset: Gretel PII Benchmark (acquired by NVIDIA) — 50,000 synthetic documents
+[x] demo_shield.py recorded — PII audit + redaction story (assets/demo_shield.gif)
+[x] demo_sword.py recorded — semantic search + filter + ask story (assets/demo_sword.gif)
+[x] README rewritten — search-first story, Gretel/NVIDIA dataset, real GIFs embedded
+[x] 113 tests passing
 
 ## Next steps
-- Phase B: record demo GIF
-- Phase C: PyPI publish
-- Do NOT run `git tag v0.1.0` until demo is recorded and website is live
+- Phase C: Build website (GitHub Pages, one page, embed demo GIFs)
+- Phase D: PyPI publish — only after website is live
+- Do NOT run `git tag v0.1.0` until website is live
+
+## Demo dataset
+- data/gretel_pii.csv — Gretel PII Benchmark, 50,000 synthetic documents
+- Search index: .omna/text.parquet (built with df.omna.embed("text"))
+- Demo scripts: scripts/demo_shield.py, scripts/demo_sword.py
 
 ## Git
 - First commit: 6d5234a (main branch)

@@ -52,6 +52,7 @@ Issues     = "https://github.com/gaurjin/omna/issues"
 embed = [
     "fastembed>=0.8",
     "numpy>=1.26",
+    "onnxruntime>=1.18",
 ]
 
 # Required for df.omna.mask_pii() and df.omna.pii_report()

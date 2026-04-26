@@ -4,18 +4,29 @@ from __future__ import annotations
 import re
 
 import polars as pl
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 _EMAIL_RE = re.compile(r'^[\w.+\-]+@[\w\-]+\.[a-z]{2,}$', re.IGNORECASE)
 _PHONE_RE = re.compile(r'^[\d\s()\-+\.]{7,20}$')
 
 _DATE_TYPES = (pl.Date, pl.Datetime, pl.Time, pl.Duration)
 
+_LABEL_STYLES = {
+    "name":     "bold blue",
+    "text":     "bold green",
+    "numeric":  "bold yellow",
+    "id":       "dim",
+    "category": "bold magenta",
+}
+
 
 def _infer_label(name: str, dtype: pl.DataType, samples: list) -> str:
     """Return a semantic label for one column."""
     name_l = name.lower()
 
-    # dtype-first: unambiguous types
     if dtype == pl.Boolean:
         return "boolean"
     if any(isinstance(dtype, t) for t in _DATE_TYPES):
@@ -25,7 +36,6 @@ def _infer_label(name: str, dtype: pl.DataType, samples: list) -> str:
             return "id"
         return "numeric"
 
-    # string column — try name keywords first, then sample patterns
     if any(k in name_l for k in ("email", "mail")):
         return "email"
     if any(k in name_l for k in ("phone", "tel", "mobile", "cell", "fax")):
@@ -41,7 +51,6 @@ def _infer_label(name: str, dtype: pl.DataType, samples: list) -> str:
                                   "review", "bio", "detail")):
         return "text"
 
-    # sample-based fallback for string values
     str_samples = [s for s in samples if isinstance(s, str) and s]
     if str_samples:
         if all(_EMAIL_RE.match(s) for s in str_samples):
@@ -92,7 +101,7 @@ def describe(df: pl.DataFrame) -> pl.DataFrame:
             "null_pct": null_pct,
             "unique_count": unique_count,
             "label": _infer_label(col, dtype, samples),
-            "sample": ", ".join(repr(v) for v in samples),
+            "sample": ", ".join(str(v) for v in samples),
         })
 
     if not rows:
@@ -103,3 +112,47 @@ def describe(df: pl.DataFrame) -> pl.DataFrame:
         })
 
     return pl.DataFrame(rows).cast({"null_pct": pl.Float64, "unique_count": pl.Int64})
+
+
+def _print_understand(result: pl.DataFrame, n_rows: int) -> None:
+    """Print a rich-formatted schema summary to stdout."""
+    console = Console()
+    n_cols = len(result)
+
+    col_word = "column" if n_cols == 1 else "columns"
+    header = f"  Omna — Schema Analysis  │  {n_cols} {col_word} · {n_rows:,} rows"
+    console.print(Panel(header, box=box.SQUARE, expand=False))
+    console.print()
+
+    table = Table(
+        show_header=True,
+        header_style="bold",
+        box=box.SIMPLE_HEAD,
+        show_edge=False,
+        pad_edge=True,
+        padding=(0, 1),
+    )
+    table.add_column("column")
+    table.add_column("detected as")
+    table.add_column("dtype")
+    table.add_column("missing")
+    table.add_column("unique", justify="right")
+    table.add_column("sample", no_wrap=True)
+
+    for row in result.iter_rows(named=True):
+        missing_str = f"{row['null_pct']}%"
+        if row["null_pct"] > 10:
+            missing_str += " ⚠️"
+
+        label = row["label"]
+        style = _LABEL_STYLES.get(label, "")
+        detected = f"[{style}]{label}[/{style}]" if style else label
+
+        unique_str = f"{row['unique_count']:,}"
+
+        raw_sample = row["sample"].replace("\n", " ").replace("\r", " ")
+        sample = raw_sample[:30] + "..." if len(raw_sample) > 30 else raw_sample
+
+        table.add_row(row["column"], detected, row["dtype"], missing_str, unique_str, sample)
+
+    console.print(table)

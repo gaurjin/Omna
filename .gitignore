@@ -37,3 +37,6 @@ dist/
 
 # Generated output
 graphify-out/
+
+# Terminal recordings (large binary, not source)
+*.cast

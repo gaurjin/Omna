@@ -141,14 +141,20 @@ def test_sample_skips_nulls():
 
 # ── omna.understand() top-level function ────────────────────────────────────
 
-def test_top_level_understand_returns_dataframe():
+def test_top_level_understand_returns_none(capsys):
     df = pl.DataFrame({"email": ["a@b.com"], "age": [25]})
     result = omna.understand(df)
+    assert result is None
+
+
+def test_top_level_understand_df_returns_dataframe():
+    df = pl.DataFrame({"email": ["a@b.com"], "age": [25]})
+    result = omna.understand_df(df)
     assert isinstance(result, pl.DataFrame)
     assert len(result) == 2
 
 
-def test_top_level_understand_labels_email():
+def test_top_level_understand_df_labels_email():
     df = pl.DataFrame({"email_address": ["a@b.com"]})
-    result = omna.understand(df)
+    result = omna.understand_df(df)
     assert result["label"][0] == "email"

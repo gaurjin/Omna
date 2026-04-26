@@ -1313,6 +1313,8 @@ all = [
     { name = "fastembed" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "onnxruntime", version = "1.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "presidio-analyzer" },
     { name = "presidio-anonymizer" },
 ]
@@ -1325,6 +1327,8 @@ dev = [
     { name = "maturin" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "onnxruntime", version = "1.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "presidio-analyzer" },
     { name = "presidio-anonymizer" },
     { name = "pytest" },
@@ -1333,6 +1337,8 @@ embed = [
     { name = "fastembed" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "onnxruntime", version = "1.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 pii = [
     { name = "presidio-analyzer" },
@@ -1350,6 +1356,7 @@ requires-dist = [
     { name = "omna", extras = ["ask"], marker = "extra == 'all'" },
     { name = "omna", extras = ["embed"], marker = "extra == 'all'" },
     { name = "omna", extras = ["pii"], marker = "extra == 'all'" },
+    { name = "onnxruntime", marker = "extra == 'embed'", specifier = ">=1.18" },
     { name = "polars", specifier = ">=1.0" },
     { name = "presidio-analyzer", marker = "extra == 'pii'", specifier = ">=2.2" },
     { name = "presidio-anonymizer", marker = "extra == 'pii'", specifier = ">=2.2" },

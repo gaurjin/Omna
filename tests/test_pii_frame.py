@@ -35,13 +35,14 @@ def test_pii_report_does_not_modify_df(pii_df):
 
 def test_pii_report_columns(pii_df):
     result = pii_df.omna.pii_report()
-    assert {"column", "row", "entity_type", "text", "score"}.issubset(result.columns)
+    assert {"column", "pii_types", "sample_size", "rows_with_pii", "flagged"}.issubset(result.columns)
 
 
 def test_pii_report_clean_df_is_empty():
     df = pl.DataFrame({"notes": [CLEAN, "bolts nuts screws only."]})
     result = df.omna.pii_report()
-    assert len(result) == 0
+    assert result["rows_with_pii"][0] == 0
+    assert result["flagged"][0] == False
 
 
 # ── mask_pii() ────────────────────────────────────────────────────────────────
@@ -79,10 +80,10 @@ def test_mask_pii_writes_audit_file(pii_df, tmp_path):
 
 
 def test_mask_pii_audit_is_readable_parquet(pii_df, tmp_path):
-    audit = tmp_path / "audit.parquet"
+    audit = tmp_path / "audit.csv"
     pii_df.omna.mask_pii(audit_path=audit)
-    log = pl.read_parquet(audit)
-    assert "entity_type" in log.columns
+    log = pl.read_csv(audit)
+    assert "column" in log.columns
 
 
 def test_mask_pii_does_not_modify_original(pii_df, tmp_path):
