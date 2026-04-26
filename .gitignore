@@ -40,3 +40,6 @@ graphify-out/
 
 # Terminal recordings (large binary, not source)
 *.cast
+
+# Data files — never commit datasets to git (can be GBs)
+data/
