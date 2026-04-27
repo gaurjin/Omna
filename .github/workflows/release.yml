@@ -26,6 +26,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch Rust source
+        env:
+          ENGINE_PAT: ${{ secrets.ENGINE_PAT }}
+        run: |
+          git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
+          cp -r /tmp/engine/src ./src
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -60,6 +67,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch Rust source
+        env:
+          ENGINE_PAT: ${{ secrets.ENGINE_PAT }}
+        run: |
+          git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
+          cp -r /tmp/engine/src ./src
+
       - name: Set up QEMU (aarch64 cross-compilation only)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         uses: docker/setup-qemu-action@v3
@@ -81,33 +95,13 @@ jobs:
           name: wheels-${{ matrix.target }}
           path: dist/*.whl
 
-  # ── Source distribution ───────────────────────────────────────────────────────
-  # The sdist lets pip build from source on platforms we don't have a wheel for.
-  # It requires Rust to be installed on the user's machine.
-  build-sdist:
-    name: Source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist
-
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*.tar.gz
-
   # ── Publish to PyPI ───────────────────────────────────────────────────────────
-  # Only runs after ALL build jobs succeed. Downloads every wheel + the sdist,
+  # Only runs after ALL build jobs succeed. Downloads every wheel,
   # then publishes them all in one shot.
+  # Note: no sdist — Rust source is private and must not be bundled.
   publish:
     name: Publish to PyPI
-    needs: [build-macos, build-linux, build-sdist]
+    needs: [build-macos, build-linux]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -118,12 +112,6 @@ jobs:
         with:
           pattern: wheels-*       # matches every wheels-* artifact
           merge-multiple: true    # flatten into a single dist/ directory
-          path: dist
-
-      - name: Download sdist
-        uses: actions/download-artifact@v4
-        with:
-          name: sdist
           path: dist
 
       - name: Publish to PyPI
