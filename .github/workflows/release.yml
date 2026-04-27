@@ -32,6 +32,8 @@ jobs:
         run: |
           git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
           cp -r /tmp/engine/src ./src
+          cp /tmp/engine/Cargo.toml ./Cargo.toml
+          cp /tmp/engine/Cargo.lock ./Cargo.lock
 
       - uses: actions/setup-python@v5
         with:
@@ -73,6 +75,8 @@ jobs:
         run: |
           git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
           cp -r /tmp/engine/src ./src
+          cp /tmp/engine/Cargo.toml ./Cargo.toml
+          cp /tmp/engine/Cargo.lock ./Cargo.lock
 
       - name: Set up QEMU (aarch64 cross-compilation only)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
