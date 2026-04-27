@@ -52,7 +52,7 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 ## Repositories
 - Public (Python layer): https://github.com/gaurjin/Omna
 - Private (Rust engine): https://github.com/gaurjin/Omna-engine
-- PyPI account: gaurjin (created, not yet published)
+- PyPI account: gaurjin — published! pypi.org/project/omna (v0.1.0, 2026-04-26)
 
 ## Current build status
 [x] Day 0 — tools installed
@@ -80,9 +80,9 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 [x] 113 tests passing
 
 ## Next steps
-- Phase C: Build website (GitHub Pages, one page, embed demo GIFs)
-- Phase D: PyPI publish — only after website is live
-- Do NOT run `git tag v0.1.0` until website is live
+- [x] Phase C: Website live at omna.dev (2026-04-26)
+- [x] Phase D: PyPI publish — v0.1.0 live at pypi.org/project/omna (2026-04-26)
+- Phase E: Announce — X/Twitter post, Hacker News, Python communities
 
 ## Demo dataset
 - data/gretel_pii.csv — Gretel PII Benchmark, 50,000 synthetic documents
