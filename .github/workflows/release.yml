@@ -20,7 +20,7 @@ jobs:
         platform:
           - os: macos-14        # Apple Silicon (aarch64)
             target: aarch64-apple-darwin
-          - os: macos-13        # Intel (x86_64)
+          - os: macos-14        # Intel cross-compile from Apple Silicon (faster runners, identical output)
             target: x86_64-apple-darwin
     runs-on: ${{ matrix.platform.os }}
     steps:
