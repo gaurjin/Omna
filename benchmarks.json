@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "dataset": "Gretel PII Benchmark (Gretel AI / NVIDIA)",
+    "dataset_url": "https://huggingface.co/datasets/gretel-ai/gretel-pii-masking-en",
+    "total_dataset_rows": 50000,
+    "sample_size": 1000,
+    "seed": 42,
+    "run_date": "2026-04-28",
+    "hardware": "Apple Silicon (MacBook), single-threaded"
+  },
+  "eval1_core_pii": {
+    "description": "Core PII types: name, email, SSN, phone, credit card",
+    "gt_spans_in_sample": 1398,
+    "systems": {
+      "raw_presidio": {"tp": 1061, "fp": 3967, "fn": 337, "precision": 0.211, "recall": 0.759, "f1": 0.330, "fp_rate": 0.789, "rows_per_sec": 132},
+      "omna_full": {"tp": 968, "fp": 718, "fn": 430, "precision": 0.574, "recall": 0.692, "f1": 0.628, "fp_rate": 0.426, "rows_per_sec": 137},
+      "omna_fast": {"note": "Regex-only; GT filtered to email/phone/SSN/CC only", "gt_spans_in_sample": 808, "tp": 545, "fp": 78, "fn": 263, "precision": 0.875, "recall": 0.675, "f1": 0.762, "fp_rate": 0.125, "rows_per_sec": 81666}
+    }
+  },
+  "eval2_fp_stress": {
+    "description": "Rows with ZERO core PII in ground truth — every detection is a false positive",
+    "n_rows": 330,
+    "systems": {
+      "raw_presidio": {"total_fp": 1270, "rows_flagged": 323, "pct_rows_flagged": 0.979, "avg_fp_per_row": 3.85},
+      "omna_full": {"total_fp": 247, "rows_flagged": 163, "pct_rows_flagged": 0.494, "avg_fp_per_row": 0.75},
+      "omna_fast": {"total_fp": 33, "rows_flagged": 29, "pct_rows_flagged": 0.088, "avg_fp_per_row": 0.10}
+    }
+  },
+  "eval3_all_pii": {
+    "description": "All Gretel PII types including dates, addresses, medical record #s, etc.",
+    "gt_spans_in_sample": 4158,
+    "systems": {
+      "raw_presidio": {"tp": 3205, "fp": 1823, "fn": 955, "precision": 0.637, "recall": 0.770, "f1": 0.698, "fp_rate": 0.363, "rows_per_sec": 137},
+      "omna_full": {"tp": 1469, "fp": 217, "fn": 2691, "precision": 0.871, "recall": 0.353, "f1": 0.503, "fp_rate": 0.129, "rows_per_sec": 137}
+    }
+  }
+}
