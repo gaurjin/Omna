@@ -34,7 +34,6 @@ classifiers = [
 # Heavy deps (fastembed, presidio, anthropic) are lazy-loaded inside their
 # respective methods and declared in [project.optional-dependencies] below.
 dependencies = [
-    "faker>=40.15.0",
     "polars>=1.0",
 ]
 
@@ -75,10 +74,11 @@ all = [
     "omna[ask]",
 ]
 
-# Development tools
+# Development tools (faker is only used by scripts/generate_demo_data.py)
 dev = [
     "pytest>=8.0",
     "maturin>=1.0",
+    "faker>=40.15.0",
     "omna[all]",
 ]
 

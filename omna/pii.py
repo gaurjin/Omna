@@ -121,7 +121,14 @@ def _get_analyzer():
     """Return the process-local Presidio analyzer, building it if needed."""
     global _ANALYZER
     if _ANALYZER is None:
-        from presidio_analyzer import AnalyzerEngine
+        try:
+            from presidio_analyzer import AnalyzerEngine
+        except ImportError:
+            raise ImportError(
+                "presidio-analyzer is required for pii_report() and mask_pii(). "
+                'Install it with:  pip install "omna[pii]"\n'
+                "Then:  python -m spacy download en_core_web_lg"
+            ) from None
         _ANALYZER = AnalyzerEngine()
         # Disable unused spaCy pipeline stages for ~2x speedup.
         nlp = _ANALYZER.nlp_engine.nlp.get("en")

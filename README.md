@@ -54,7 +54,8 @@ for col in df.columns:
 # With Omna
 df.omna.pii_report()   # audit — find every leak, every column
 df.omna.mask_pii()     # redact — one line, full audit log
-# Names, SSNs, emails, phone numbers — all gone. Local. No cloud.
+# Names, SSNs, emails, phone numbers — redacted. Local. No cloud.
+# Detection quality is benchmarked openly: see docs/benchmark.md.
 ```
 
 ---
@@ -76,11 +77,11 @@ Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,0
 ## Install
 
 ```bash
-pip install omna
+pip install "omna[all]"
 python -m spacy download en_core_web_lg   # one-time, for PII detection
 ```
 
-Requires Python 3.10+. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[pii]` (masking), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 
@@ -290,7 +291,7 @@ df.omna.search("insurance claim denied", on="text", k=5)
    frame.py          slices result rows, attaches _score → pl.DataFrame
 ```
 
-The Rust kernel is 23 lines. Dot products and norms in machine code, no intermediate allocations. 500,000 × 384-dim in under 10ms on a single core.
+The Rust kernel is under 70 lines. Dot products and norms in machine code, no intermediate allocations. 500,000 × 384-dim in under 10ms on a single core.
 
 ---
 
@@ -342,7 +343,7 @@ Those are vector databases. Omna is a Polars plugin. If your data already lives 
 <details>
 <summary><b>Which Polars versions are supported?</b></summary>
 
-Omna is tested on Polars 0.20+. It installs as a namespace plugin via `df.omna.*` — no import needed after `import omna`.
+Omna is tested on Polars 1.0+. It installs as a namespace plugin via `df.omna.*` — no import needed after `import omna`.
 
 </details>
 

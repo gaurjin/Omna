@@ -84,6 +84,14 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 - [x] Phase D: PyPI publish — v0.1.0 live at pypi.org/project/omna (2026-04-26)
 - Phase E: Announce — X/Twitter post, Hacker News, Python communities
 
+## 2026-06-10 — install-story + accuracy fixes (ship as v0.1.1)
+- [x] README documents extras: `pip install "omna[all]"` (bare install was crashing the quick start — fastembed/presidio are optional extras the README never mentioned)
+- [x] Friendly ImportErrors in embedder.py + pii.py naming the extra to install (mirrors ask.py); 2 new tests → **115 passing**
+- [x] faker moved from runtime dependencies to the dev extra (only used by scripts/generate_demo_data.py)
+- [x] README accuracy: Polars 0.20+ → 1.0+ (matches pyproject); "23 lines" → "under 70 lines"; PII blurb "all gone" → "redacted" + open benchmark link (own Gretel benchmark: core-PII recall 0.692 — see benchmarks.json)
+- [x] First Rust kernel unit suite (7 tests in src/similarity.rs `#[cfg(test)]`), synced to Omna-engine per the sync rule
+- [ ] Publish v0.1.1 to PyPI (bundle with the PII-engine upgrade: swap to OpenAI privacy-filter ONNX model, hybrid with regex fast path; acceptance gate = Gretel harness core-PII recall ≥ 0.95)
+
 ## Demo dataset
 - data/gretel_pii.csv — Gretel PII Benchmark, 50,000 synthetic documents
 - Search index: .omna/text.parquet (built with df.omna.embed("text"))

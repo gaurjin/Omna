@@ -26,7 +26,13 @@ def get_best_providers() -> list[str]:
 
 def create_embedding_model(model_name: str = DEFAULT_MODEL):
     """Create a TextEmbedding model with the best available providers."""
-    from fastembed import TextEmbedding
+    try:
+        from fastembed import TextEmbedding
+    except ImportError:
+        raise ImportError(
+            "fastembed is required for embed(), search() and filter(). "
+            'Install it with:  pip install "omna[embed]"'
+        ) from None
 
     providers = get_best_providers()
     is_cpu_only = providers[0] == "CPUExecutionProvider"
