@@ -167,7 +167,7 @@ Project path: ~/Developer/Omna
 - First commit: 6d5234a
 
 ## Current status
-All 7 build days complete. 113 tests passing. Rich formatted output across all methods.
+All 7 build days complete. 115 tests passing (2026-06-10: +2 ImportError-guard tests; kernel has its own 7-test Rust suite, tracked in Omna-engine). Rich formatted output across all methods.
 PII false-positive suppression working. XXXX-skip fix applied (mask_pii no longer
 double-redacts government pre-redacted tokens).
 Multi-platform wheel workflow: .github/workflows/release.yml

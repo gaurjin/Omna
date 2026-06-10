@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/omna)](https://pypi.org/project/omna/)
 [![Python](https://img.shields.io/pypi/pyversions/omna)](https://pypi.org/project/omna/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-113%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen)](tests/)
 
 **Semantic search, PII masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
 
