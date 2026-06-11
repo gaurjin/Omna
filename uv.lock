@@ -1303,7 +1303,6 @@ name = "omna"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "faker" },
     { name = "polars" },
 ]
 
@@ -1323,6 +1322,7 @@ ask = [
 ]
 dev = [
     { name = "anthropic" },
+    { name = "faker" },
     { name = "fastembed" },
     { name = "maturin" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1348,7 +1348,7 @@ pii = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'ask'", specifier = ">=0.26" },
-    { name = "faker", specifier = ">=40.15.0" },
+    { name = "faker", marker = "extra == 'dev'", specifier = ">=40.15.0" },
     { name = "fastembed", marker = "extra == 'embed'", specifier = ">=0.8" },
     { name = "maturin", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "numpy", marker = "extra == 'embed'", specifier = ">=1.26" },

@@ -205,6 +205,48 @@ def _mask_batch(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
 # Column-level helpers
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# omna-core engine (opt-in, 2026-06-10, workspace #94)
+#
+# Routes masking to the unified L1-L6 Rust engine (`omna_core` wheel, built
+# from omna-workspace bindings/omna-core-py — the SAME kernel the Mac app and
+# browser extension ship). Opt-in via mask_pii(engine="core").
+#
+# DEFAULT STAYS PRESIDIO: the rollout gate is Gretel core-PII recall >= 0.95
+# measured by the workspace #92 benchmark suite. Measured 2026-06-10:
+# unified engine 0.524 vs presidio-path 0.692 (bench/results/2026-06-10-unified/
+# in omna-workspace) — the gap is bare person names, which the engine's L3
+# model layer (not yet enabled anywhere) is designed to close. The default
+# flips only when the measured number passes the gate; never before.
+#
+# Output semantics differ deliberately: engine="core" produces REVERSIBLE
+# Shield tokens ([PERSON_1], [EMAIL_1], ...) instead of "<REDACTED>", except
+# secrets/credentials which are ALWAYS irreversibly [REDACTED:<KIND>].
+# ---------------------------------------------------------------------------
+
+def _core_engine_available() -> bool:
+    try:
+        import omna_core  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _mask_batch_core(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
+    """Mask a batch via the omna-core unified engine. `replacement` is
+    ignored (token semantics are the engine's, documented above) — the
+    parameter exists so this is signature-compatible with the other batch
+    workers for the process pool."""
+    import omna_core
+    out = []
+    for t in texts:
+        if not t or not isinstance(t, str):
+            out.append(t)
+        else:
+            out.append(omna_core.mask(t)["masked"])
+    return out
+
+
 def _sample_column_for_pii(values: list[str], sample_size: int = 1000) -> bool:
     """
     Sample up to `sample_size` non-null values from the column.
@@ -386,6 +428,7 @@ def mask_pii(
     replacement: str = "<REDACTED>",
     audit_path: Optional[str] = None,
     fast: bool = False,
+    engine: str = "presidio",
 ) -> pl.DataFrame:
     """
     Mask PII in all string columns (or the specified columns).
@@ -402,9 +445,24 @@ def mask_pii(
         Does NOT catch person names written in prose.
         ~10-50x faster on long-text columns — recommended for review/body text.
         If False (default), use full Presidio with spaCy NER for maximum recall.
+    engine : "presidio" (default) or "core"
+        "core" routes to the unified Rust engine (`omna_core` wheel — the same
+        kernel as the Omna Mac app and browser extension): reversible
+        [PERSON_1]-style tokens, secrets always irreversibly redacted,
+        checksum-validated IDs, 220+ secret rules. Ignores `replacement` and
+        `fast`. Opt-in until the measured Gretel core-PII recall gate
+        (>= 0.95) passes — see the module comment above _mask_batch_core.
 
     Returns a new DataFrame with PII masked.
     """
+    if engine not in ("presidio", "core"):
+        raise ValueError(f"unknown engine {engine!r} (use 'presidio' or 'core')")
+    if engine == "core" and not _core_engine_available():
+        raise ImportError(
+            "engine='core' requires the omna-core wheel. It is not yet on "
+            "PyPI; install it from the omna-workspace build "
+            "(target/wheels/omna_core-*.whl)."
+        )
     if columns is None:
         detected = detect_pii_columns(df, sample_size=1000)
         columns = list(detected.keys())
@@ -413,7 +471,10 @@ def mask_pii(
     if not columns:
         return df
 
-    batch_fn = _mask_batch_fast if fast else _mask_batch
+    if engine == "core":
+        batch_fn = _mask_batch_core
+    else:
+        batch_fn = _mask_batch_fast if fast else _mask_batch
     n_workers = os.cpu_count() or 1
     # Large batches minimise IPC overhead; workers stay busy per batch.
     batch_size = max(500, 50_000 // n_workers)
@@ -465,7 +526,8 @@ def mask_pii(
                 "column": col,
                 "rows_scanned": len(values),
                 "rows_masked": changed,
-                "replacement": replacement,
+                "replacement": replacement if engine != "core" else "shield-tokens",
+                "engine": engine,
             })
 
     if audit_path and audit_rows:

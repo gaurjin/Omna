@@ -9,7 +9,24 @@ DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 _MAX_SAMPLE_ROWS = 20
 
 
-def _serialize(df: pl.DataFrame) -> str:
+def _mask_sample_text(text: str) -> str:
+    """Mask PII in the serialized sample rows before they leave the process
+    (2026-06-10 fix for the cross-product audit's #2 finding: ask() used to
+    send 20 RAW rows to the Anthropic API).
+
+    Engine choice mirrors mask_pii: the unified omna-core engine when the
+    wheel is installed (reversible tokens, secrets always redacted),
+    otherwise the fast regex path (email/phone/SSN/card/URL) — never nothing.
+    """
+    try:
+        import omna_core
+        return omna_core.mask(text)["masked"]
+    except ImportError:
+        from .pii import _mask_text_fast
+        return _mask_text_fast(text)
+
+
+def _serialize(df: pl.DataFrame, mask_rows: bool = True) -> str:
     """Build a compact text representation of *df* for the prompt."""
     n_rows, n_cols = df.shape
     schema_lines = [f"  {col}: {dtype}" for col, dtype in zip(df.columns, df.dtypes)]
@@ -23,16 +40,19 @@ def _serialize(df: pl.DataFrame) -> str:
         if null_info else ["  none"]
     )
     sample_rows = min(n_rows, _MAX_SAMPLE_ROWS)
+    sample_csv = df.head(sample_rows).write_csv()
+    if mask_rows:
+        sample_csv = _mask_sample_text(sample_csv)
     return (
         f"Shape: {n_rows} rows × {n_cols} columns\n\n"
         f"Schema:\n" + "\n".join(schema_lines) + "\n\n"
         f"Null counts:\n" + "\n".join(null_lines) + "\n\n"
         f"Sample data (first {sample_rows} rows):\n"
-        + df.head(sample_rows).write_csv()
+        + sample_csv
     )
 
 
-def query(df: pl.DataFrame, question: str, model: str = DEFAULT_MODEL) -> str:
+def query(df: pl.DataFrame, question: str, model: str = DEFAULT_MODEL, mask_rows: bool = True) -> str:
     """Answer a natural-language *question* about *df* using Claude.
 
     Sends the DataFrame schema and a sample of rows to Claude and returns the
@@ -45,6 +65,10 @@ def query(df: pl.DataFrame, question: str, model: str = DEFAULT_MODEL) -> str:
         df: The DataFrame to query.
         question: Any natural-language question about the data.
         model: Claude model ID. Defaults to claude-haiku-4-5-20251001.
+        mask_rows: Mask PII in the sampled rows before sending (default True,
+            2026-06-10). Uses the omna-core unified engine when installed,
+            else the fast regex masker. Set False only for data you know is
+            synthetic/public.
 
     Returns:
         Claude's answer as a string.
@@ -68,7 +92,7 @@ def query(df: pl.DataFrame, question: str, model: str = DEFAULT_MODEL) -> str:
             "Then set your key:  export ANTHROPIC_API_KEY=sk-ant-..."
         ) from None
     client = anthropic.Anthropic(api_key=api_key)
-    data_context = _serialize(df)
+    data_context = _serialize(df, mask_rows=mask_rows)
     message = client.messages.create(
         model=model,
         max_tokens=1024,
