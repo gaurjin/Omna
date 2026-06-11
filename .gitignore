@@ -43,3 +43,6 @@ graphify-out/
 
 # Data files — never commit datasets to git (can be GBs)
 data/
+
+# user scratch file, accidentally swept into a 2026-06-10 commit
+/text
