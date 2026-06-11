@@ -244,10 +244,25 @@ clean = df.omna.mask_pii(fast=True)
 
 Detects: `PERSON` `EMAIL_ADDRESS` `PHONE_NUMBER` `CREDIT_CARD` `US_SSN` `US_PASSPORT` `IP_ADDRESS` `IBAN_CODE` `URL` and more.
 
+```python
+# Experimental: route to the unified Omna detection engine (same Rust kernel
+# as the Omna Mac app + browser extension). Reversible [PERSON_1]-style
+# tokens; credentials/secrets always irreversibly redacted; checksum-validated
+# IDs; 220+ secret-detection rules. Requires the omna-core wheel (not yet on
+# PyPI). The default stays the engine above until the measured-recall gate
+# passes — see benchmarks.json.
+clean = df.omna.mask_pii(engine="core")
+```
+
 </details>
 
 <details>
 <summary><b>df.omna.ask(question)</b> — natural language queries</summary>
+
+> Privacy (since 2026-06-10): the sampled rows in the prompt are **masked
+> before they leave your machine** (PII replaced with tokens; secrets
+> redacted). Pass `mask_rows=False` to send raw rows for synthetic/public
+> data.
 
 Sends schema + up to 20 sample rows to Claude. Requires `ANTHROPIC_API_KEY`.
 

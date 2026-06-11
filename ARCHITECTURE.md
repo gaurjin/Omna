@@ -39,6 +39,14 @@ df.omna.ask("question")          # natural language query via LLM
 
 ---
 
+## Detection engines (2026-06-10)
+
+`omna/pii.py` carries TWO detection paths:
+- **presidio (default):** Presidio AnalyzerEngine + spaCy `en_core_web_lg`, 17-entity allowlist, irreversible `<REDACTED>`. Measured Gretel core-PII recall 0.692 (benchmarks.json).
+- **core (opt-in, `mask_pii(engine="core")`):** the unified L1–L6 Rust engine from omna-workspace via the `omna_core` pyo3 wheel (`bindings/omna-core-py`, not yet on PyPI). Reversible Shield tokens; secrets always irreversibly redacted. Measured Gretel core-PII recall 0.524 (gap = bare person names — the engine's L3 model layer, not yet enabled anywhere). **The default flips only when the measured recall ≥ 0.95** — gate + numbers recorded in benchmarks.json `core_engine_2026_06_10`.
+
+`omna/ask.py` masks the sampled rows before the Anthropic call (omna_core when installed, else the fast regex path); `mask_rows=False` opts out.
+
 ## Two-repo structure
 
 Omna is deliberately split across two directories and two GitHub repos.
