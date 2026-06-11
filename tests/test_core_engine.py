@@ -39,16 +39,24 @@ def test_engine_core_redacts_secrets_irreversibly():
     assert "[REDACTED:" in cell
 
 
-def test_engine_core_default_is_still_presidio():
+def test_engine_default_is_auto_resolving_to_core_when_wheel_present():
+    """Owner decision 2026-06-11: every product calls the unified pipeline.
+
+    Default is "auto" — core when the omna_core wheel is importable (it is in
+    this test, see pytestmark), presidio otherwise so a bare PyPI install
+    keeps its existing behavior. Supersedes the 2026-06-10 gate-freeze test
+    that lived here; the measured numbers stay recorded in benchmarks.json.
+    """
     import inspect
 
     from omna.pii import mask_pii as mp
 
     sig = inspect.signature(mp)
-    assert sig.parameters["engine"].default == "presidio", (
-        "the default must not flip before the >=0.95 Gretel gate passes "
-        "(measured 0.524 on 2026-06-10 — see benchmarks.json core_engine note)"
-    )
+    assert sig.parameters["engine"].default == "auto"
+    # With the wheel installed, the default path produces unified-engine
+    # Shield tokens, not presidio "<REDACTED>".
+    out = mask_pii(_df(), columns=["email"])
+    assert out["email"].to_list()[0].startswith("[EMAIL_")
 
 
 def test_engine_rejects_unknown_name():

@@ -206,18 +206,22 @@ def _mask_batch(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# omna-core engine (opt-in, 2026-06-10, workspace #94)
+# omna-core engine (2026-06-10 workspace #94; DEFAULT since 2026-06-11)
 #
 # Routes masking to the unified L1-L6 Rust engine (`omna_core` wheel, built
 # from omna-workspace bindings/omna-core-py — the SAME kernel the Mac app and
-# browser extension ship). Opt-in via mask_pii(engine="core").
+# browser extension ship).
 #
-# DEFAULT STAYS PRESIDIO: the rollout gate is Gretel core-PII recall >= 0.95
-# measured by the workspace #92 benchmark suite. Measured 2026-06-10:
-# unified engine 0.524 vs presidio-path 0.692 (bench/results/2026-06-10-unified/
-# in omna-workspace) — the gap is bare person names, which the engine's L3
-# model layer (not yet enabled anywhere) is designed to close. The default
-# flips only when the measured number passes the gate; never before.
+# DEFAULT IS engine="auto": core when the wheel is importable, presidio
+# otherwise. Owner decision 2026-06-11 ("every product must call
+# detect_and_mask()") supersedes the 2026-06-10 recall-gate freeze for
+# machines that have the wheel; PyPI installs (no wheel published yet) keep
+# the presidio behavior unchanged. Honest numbers, measured by the workspace
+# #92 suite: Gretel core-PII recall — unified engine 0.524 vs presidio-path
+# 0.692 (gap = bare person names, the L3 model layer's job, workspace #100);
+# synthetic corpus recall 0.836 unified vs 0.621 legacy-regex with leak rate
+# 0.078 vs 0.251, plus secrets coverage presidio has none of. Presidio is
+# parked, not deleted: engine="presidio" forces it.
 #
 # Output semantics differ deliberately: engine="core" produces REVERSIBLE
 # Shield tokens ([PERSON_1], [EMAIL_1], ...) instead of "<REDACTED>", except
@@ -232,18 +236,36 @@ def _core_engine_available() -> bool:
         return False
 
 
-def _mask_batch_core(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
+def _mask_batch_core(
+    texts: list[str],
+    replacement: str = "<REDACTED>",
+    column: Optional[str] = None,
+) -> list[str]:
     """Mask a batch via the omna-core unified engine. `replacement` is
     ignored (token semantics are the engine's, documented above) — the
     parameter exists so this is signature-compatible with the other batch
-    workers for the process pool."""
+    workers for the process pool.
+
+    `column` (when given) is prepended as a ``"col: value"`` label cue —
+    the same structure prior the native row pipeline gets from its
+    ``"key: value | key: value"`` row format (omna-vision: structured data
+    runs the pipeline "with structure context (column names as priors)").
+    The prefix is stripped from the masked output; if a span ever swallowed
+    the label (defensive), the cell is re-masked without the prior."""
     import omna_core
     out = []
+    prefix = f"{column}: " if column else ""
     for t in texts:
         if not t or not isinstance(t, str):
             out.append(t)
-        else:
-            out.append(omna_core.mask(t)["masked"])
+            continue
+        masked = omna_core.mask(prefix + t)["masked"]
+        if prefix:
+            if masked.startswith(prefix):
+                masked = masked[len(prefix):]
+            else:
+                masked = omna_core.mask(t)["masked"]
+        out.append(masked)
     return out
 
 
@@ -428,7 +450,7 @@ def mask_pii(
     replacement: str = "<REDACTED>",
     audit_path: Optional[str] = None,
     fast: bool = False,
-    engine: str = "presidio",
+    engine: str = "auto",
 ) -> pl.DataFrame:
     """
     Mask PII in all string columns (or the specified columns).
@@ -445,18 +467,23 @@ def mask_pii(
         Does NOT catch person names written in prose.
         ~10-50x faster on long-text columns — recommended for review/body text.
         If False (default), use full Presidio with spaCy NER for maximum recall.
-    engine : "presidio" (default) or "core"
+    engine : "auto" (default), "core", or "presidio"
         "core" routes to the unified Rust engine (`omna_core` wheel — the same
         kernel as the Omna Mac app and browser extension): reversible
         [PERSON_1]-style tokens, secrets always irreversibly redacted,
         checksum-validated IDs, 220+ secret rules. Ignores `replacement` and
-        `fast`. Opt-in until the measured Gretel core-PII recall gate
-        (>= 0.95) passes — see the module comment above _mask_batch_core.
+        `fast`. "auto" resolves to "core" when the wheel is installed,
+        "presidio" otherwise (owner decision 2026-06-11: every product calls
+        the unified pipeline — see the module comment above _mask_batch_core).
 
     Returns a new DataFrame with PII masked.
     """
-    if engine not in ("presidio", "core"):
-        raise ValueError(f"unknown engine {engine!r} (use 'presidio' or 'core')")
+    if engine not in ("auto", "presidio", "core"):
+        raise ValueError(
+            f"unknown engine {engine!r} (use 'auto', 'presidio' or 'core')"
+        )
+    if engine == "auto":
+        engine = "core" if _core_engine_available() else "presidio"
     if engine == "core" and not _core_engine_available():
         raise ImportError(
             "engine='core' requires the omna-core wheel. It is not yet on "
@@ -505,7 +532,17 @@ def mask_pii(
                 unique_vals[i : i + batch_size]
                 for i in range(0, len(unique_vals), batch_size)
             ]
-            col_futures[col] = [pool.submit(batch_fn, b, replacement) for b in batches]
+            if engine == "core":
+                # Column name rides along as a structure prior (see
+                # _mask_batch_core) — "name: Alice Smith" masks where the
+                # bare cell "Alice Smith" would not.
+                col_futures[col] = [
+                    pool.submit(batch_fn, b, replacement, col) for b in batches
+                ]
+            else:
+                col_futures[col] = [
+                    pool.submit(batch_fn, b, replacement) for b in batches
+                ]
 
         # Collect results in column order (order within each column preserved)
         for col in columns:

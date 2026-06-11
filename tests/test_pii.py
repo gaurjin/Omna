@@ -84,17 +84,22 @@ def test_mask_returns_two_dataframes():
 
 
 def test_mask_replaces_email():
+    # Default engine is "auto" (core when the wheel is installed, presidio
+    # otherwise) — assert the value is gone, not a specific marker.
     df = pl.DataFrame({"text": ["Contact alice@example.com for details."]})
     masked_df = mask(df)
-    assert "<REDACTED>" in masked_df["text"][0]
     assert "alice@example.com" not in masked_df["text"][0]
+    # The presidio path keeps its replacement-string semantics.
+    presidio_df = mask(df, engine="presidio")
+    assert "<REDACTED>" in presidio_df["text"][0]
 
 
 def test_mask_replaces_person():
     df = pl.DataFrame({"text": ["My name is Alice Smith."]})
     masked_df = mask(df)
-    assert "<REDACTED>" in masked_df["text"][0]
     assert "Alice Smith" not in masked_df["text"][0]
+    presidio_df = mask(df, engine="presidio")
+    assert "<REDACTED>" in presidio_df["text"][0]
 
 
 def test_mask_clean_text_unchanged():
@@ -139,7 +144,10 @@ def test_mask_multiple_columns():
         "contact": ["alice@example.com"],
     })
     masked_df = mask(df)
-    assert "<REDACTED>" in masked_df["name"][0]
-    assert "<REDACTED>" in masked_df["contact"][0]
+    # Core path masks the bare name cell via the column-name prior
+    # ("name: Alice Smith"); presidio via spaCy NER. Either way: gone.
     assert "Alice Smith" not in masked_df["name"][0]
     assert "alice@example.com" not in masked_df["contact"][0]
+    presidio_df = mask(df, engine="presidio")
+    assert "<REDACTED>" in presidio_df["name"][0]
+    assert "<REDACTED>" in presidio_df["contact"][0]
