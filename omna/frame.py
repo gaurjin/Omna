@@ -432,6 +432,7 @@ class OmnaFrame:
         self,
         audit_path: str | Path | None = None,
         fast: bool = False,
+        engine: str = "core",
     ) -> pl.DataFrame:
         """Redact PII in all string columns and save an audit log to disk.
 
@@ -440,13 +441,20 @@ class OmnaFrame:
             fast: If True, use regex-only masking (no spaCy NER). Catches
                 email, phone, SSN, credit card, URL — misses person names in
                 prose. Typically 10-50x faster on long-text columns.
-                Default False (full Presidio + spaCy, maximum recall).
+                Only applies to engine="presidio"; the core engine ignores it.
+            engine: "core" (default) — the unified Rust engine (same kernel
+                as the Omna Mac app and browser extension): reversible
+                [PERSON_1]-style tokens, secrets always irreversibly
+                redacted. Requires the omna-core wheel. "presidio" forces
+                the legacy Presidio + spaCy path (<REDACTED> markers).
 
         Returns:
             New DataFrame with PII redacted. The original is not modified.
         """
         from omna import pii
-        masked_df = pii.mask(self._df, audit_path=audit_path, fast=fast)
+        masked_df = pii.mask(
+            self._df, audit_path=audit_path, fast=fast, engine=engine
+        )
         _print_mask_pii(self._df, masked_df)
         return masked_df
 

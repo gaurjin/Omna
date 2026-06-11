@@ -84,8 +84,8 @@ def test_mask_returns_two_dataframes():
 
 
 def test_mask_replaces_email():
-    # Default engine is "auto" (core when the wheel is installed, presidio
-    # otherwise) — assert the value is gone, not a specific marker.
+    # Default engine is the unified Rust engine ("core") — assert the value
+    # is gone, not a specific marker.
     df = pl.DataFrame({"text": ["Contact alice@example.com for details."]})
     masked_df = mask(df)
     assert "alice@example.com" not in masked_df["text"][0]

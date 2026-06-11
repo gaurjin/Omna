@@ -212,16 +212,17 @@ def _mask_batch(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
 # from omna-workspace bindings/omna-core-py — the SAME kernel the Mac app and
 # browser extension ship).
 #
-# DEFAULT IS engine="auto": core when the wheel is importable, presidio
-# otherwise. Owner decision 2026-06-11 ("every product must call
-# detect_and_mask()") supersedes the 2026-06-10 recall-gate freeze for
-# machines that have the wheel; PyPI installs (no wheel published yet) keep
-# the presidio behavior unchanged. Honest numbers, measured by the workspace
+# DEFAULT IS engine="core" — unconditionally. Owner decision 2026-06-11
+# ("every product must call detect_and_mask()"; later the same day: no
+# "auto" resolution, the Rust engine is the default, period). Supersedes
+# both the 2026-06-10 recall-gate freeze and the short-lived "auto"
+# (core-when-wheel) default. Without the omna_core wheel the default raises
+# a friendly ImportError naming the wheel; presidio is parked, not deleted:
+# engine="presidio" forces it. Honest numbers, measured by the workspace
 # #92 suite: Gretel core-PII recall — unified engine 0.524 vs presidio-path
 # 0.692 (gap = bare person names, the L3 model layer's job, workspace #100);
 # synthetic corpus recall 0.836 unified vs 0.621 legacy-regex with leak rate
-# 0.078 vs 0.251, plus secrets coverage presidio has none of. Presidio is
-# parked, not deleted: engine="presidio" forces it.
+# 0.078 vs 0.251, plus secrets coverage presidio has none of.
 #
 # Output semantics differ deliberately: engine="core" produces REVERSIBLE
 # Shield tokens ([PERSON_1], [EMAIL_1], ...) instead of "<REDACTED>", except
@@ -450,7 +451,7 @@ def mask_pii(
     replacement: str = "<REDACTED>",
     audit_path: Optional[str] = None,
     fast: bool = False,
-    engine: str = "auto",
+    engine: str = "core",
 ) -> pl.DataFrame:
     """
     Mask PII in all string columns (or the specified columns).
@@ -467,23 +468,22 @@ def mask_pii(
         Does NOT catch person names written in prose.
         ~10-50x faster on long-text columns — recommended for review/body text.
         If False (default), use full Presidio with spaCy NER for maximum recall.
-    engine : "auto" (default), "core", or "presidio"
+    engine : "core" (default) or "presidio"
         "core" routes to the unified Rust engine (`omna_core` wheel — the same
         kernel as the Omna Mac app and browser extension): reversible
         [PERSON_1]-style tokens, secrets always irreversibly redacted,
         checksum-validated IDs, 220+ secret rules. Ignores `replacement` and
-        `fast`. "auto" resolves to "core" when the wheel is installed,
-        "presidio" otherwise (owner decision 2026-06-11: every product calls
-        the unified pipeline — see the module comment above _mask_batch_core).
+        `fast`. The default requires the omna-core wheel (friendly
+        ImportError with an install hint otherwise); "presidio" forces the
+        legacy Presidio path (owner decision 2026-06-11 — see the module
+        comment above _mask_batch_core).
 
     Returns a new DataFrame with PII masked.
     """
-    if engine not in ("auto", "presidio", "core"):
+    if engine not in ("presidio", "core"):
         raise ValueError(
-            f"unknown engine {engine!r} (use 'auto', 'presidio' or 'core')"
+            f"unknown engine {engine!r} (use 'core' or 'presidio')"
         )
-    if engine == "auto":
-        engine = "core" if _core_engine_available() else "presidio"
     if engine == "core" and not _core_engine_available():
         raise ImportError(
             "engine='core' requires the omna-core wheel. It is not yet on "

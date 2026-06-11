@@ -235,23 +235,24 @@ Scans every string column. Returns hit rates, PII types, and confidence scores. 
 
 ```python
 clean = df.omna.mask_pii()
-# → <REDACTED> replaces every detected entity
+# → routes to the unified Omna detection engine (same Rust kernel as the
+#   Omna Mac app + browser extension): reversible [PERSON_1]-style tokens;
+#   credentials/secrets always irreversibly [REDACTED:KIND]; checksum-
+#   validated IDs; 220+ secret-detection rules
 # → audit log saved to .omna/pii_audit.parquet automatically
-
-# Fast mode — regex only, ~10x faster, catches email/phone/SSN/URL
-clean = df.omna.mask_pii(fast=True)
+# Requires the omna-core wheel (not yet on PyPI — install it from the
+# omna-workspace build); see benchmarks.json for measured recall.
 ```
 
 Detects: `PERSON` `EMAIL_ADDRESS` `PHONE_NUMBER` `CREDIT_CARD` `US_SSN` `US_PASSPORT` `IP_ADDRESS` `IBAN_CODE` `URL` and more.
 
 ```python
-# Experimental: route to the unified Omna detection engine (same Rust kernel
-# as the Omna Mac app + browser extension). Reversible [PERSON_1]-style
-# tokens; credentials/secrets always irreversibly redacted; checksum-validated
-# IDs; 220+ secret-detection rules. Requires the omna-core wheel (not yet on
-# PyPI). The default stays the engine above until the measured-recall gate
-# passes — see benchmarks.json.
-clean = df.omna.mask_pii(engine="core")
+# Legacy engine — Presidio + spaCy, <REDACTED> markers instead of tokens
+clean = df.omna.mask_pii(engine="presidio")
+
+# Fast mode (presidio only) — regex only, ~10x faster, catches
+# email/phone/SSN/URL
+clean = df.omna.mask_pii(engine="presidio", fast=True)
 ```
 
 </details>

@@ -136,5 +136,9 @@
   "python_wheel_parity": "25/25 gretel docs byte-identical to the native runner output",
   "structured_column_prior": "mask_pii core path now prepends the column name ('name: Alice Smith') — bare name CELLS mask; bare names in PROSE remain the L3 gap.",
   "decided": "2026-06-11"
+ },
+ "core_engine_2026_06_11_default_core": {
+  "description": "engine='auto' removed the same day it shipped (owner decision 2026-06-11, final): mask_pii default is engine='core' unconditionally — no wheel-presence resolution. Without the omna_core wheel the default raises a friendly ImportError; presidio stays as the explicit engine='presidio' opt-in. Supersedes the 'auto' record above and the 2026-06-10 rollout gate. No new measurements — numbers unchanged from the 2026-06-11 run.",
+  "decided": "2026-06-11"
  }
 }

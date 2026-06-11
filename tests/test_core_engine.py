@@ -39,24 +39,38 @@ def test_engine_core_redacts_secrets_irreversibly():
     assert "[REDACTED:" in cell
 
 
-def test_engine_default_is_auto_resolving_to_core_when_wheel_present():
-    """Owner decision 2026-06-11: every product calls the unified pipeline.
-
-    Default is "auto" — core when the omna_core wheel is importable (it is in
-    this test, see pytestmark), presidio otherwise so a bare PyPI install
-    keeps its existing behavior. Supersedes the 2026-06-10 gate-freeze test
-    that lived here; the measured numbers stay recorded in benchmarks.json.
+def test_engine_default_is_core():
+    """Owner decision 2026-06-11 (final): the unified Rust engine IS the
+    default — no "auto" resolution, period. presidio is an explicit opt-in
+    (engine="presidio"); without the omna_core wheel the default raises the
+    friendly ImportError naming the wheel. Supersedes the "auto" default
+    shipped earlier the same day and the 2026-06-10 gate-freeze test;
+    measured numbers stay recorded in benchmarks.json.
     """
     import inspect
 
     from omna.pii import mask_pii as mp
 
     sig = inspect.signature(mp)
-    assert sig.parameters["engine"].default == "auto"
-    # With the wheel installed, the default path produces unified-engine
-    # Shield tokens, not presidio "<REDACTED>".
+    assert sig.parameters["engine"].default == "core"
+    # The default path produces unified-engine Shield tokens.
     out = mask_pii(_df(), columns=["email"])
     assert out["email"].to_list()[0].startswith("[EMAIL_")
+
+
+def test_engine_auto_is_gone():
+    """"auto" was removed 2026-06-11 — it must now be rejected like any
+    unknown engine name so stale call sites fail loudly, not silently."""
+    with pytest.raises(ValueError):
+        mask_pii(_df(), columns=["email"], engine="auto")
+
+
+def test_namespace_mask_pii_accepts_engine(tmp_path):
+    """README documents df.omna.mask_pii(engine=...) — the namespace method
+    must pass it through (it TypeError'd before 2026-06-11)."""
+    df = _df()
+    out = df.omna.mask_pii(audit_path=tmp_path / "a.parquet", engine="presidio")
+    assert "<REDACTED>" in out["email"].to_list()[0]
 
 
 def test_engine_rejects_unknown_name():
