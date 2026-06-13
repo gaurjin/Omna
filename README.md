@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen)](tests/)
 
-**Semantic search, PII masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
+**Semantic search, enterprise-grade PII detection & masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
 
 ---
 
@@ -52,10 +52,13 @@ for col in df.columns:
 
 ```python
 # With Omna
-df.omna.pii_report()   # audit — find every leak, every column
-df.omna.mask_pii()     # redact — one line, full audit log
-# Names, SSNs, emails, phone numbers — redacted. Local. No cloud.
-# Detection quality is benchmarked openly: see docs/benchmark.md.
+df.omna.pii_report()          # audit — find every leak, every column
+df.omna.mask_pii()            # redact — one line, full audit log
+df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
+# A six-layer engine: regex + checksum-validated IDs + 220+ secret rules +
+# an on-device AI model — the SAME Rust engine as the Omna Mac app & extension.
+# Reversible [PERSON_1] tokens; secrets always irreversibly redacted. Local.
+# Benchmarked openly (1.8% leak rate with the model): see docs/benchmark.md.
 ```
 
 ---

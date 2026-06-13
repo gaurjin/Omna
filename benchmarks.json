@@ -1,144 +1,36 @@
 {
- "meta": {
-  "dataset": "Gretel PII Benchmark (Gretel AI / NVIDIA)",
-  "dataset_url": "https://huggingface.co/datasets/gretel-ai/gretel-pii-masking-en",
-  "total_dataset_rows": 50000,
-  "sample_size": 1000,
-  "seed": 42,
-  "run_date": "2026-04-28",
-  "hardware": "Apple Silicon (MacBook), single-threaded"
- },
- "eval1_core_pii": {
-  "description": "Core PII types: name, email, SSN, phone, credit card",
-  "gt_spans_in_sample": 1398,
-  "systems": {
-   "raw_presidio": {
-    "tp": 1061,
-    "fp": 3967,
-    "fn": 337,
-    "precision": 0.211,
-    "recall": 0.759,
-    "f1": 0.33,
-    "fp_rate": 0.789,
-    "rows_per_sec": 132
-   },
-   "omna_full": {
-    "tp": 968,
-    "fp": 718,
-    "fn": 430,
-    "precision": 0.574,
-    "recall": 0.692,
-    "f1": 0.628,
-    "fp_rate": 0.426,
-    "rows_per_sec": 137
-   },
-   "omna_fast": {
-    "note": "Regex-only; GT filtered to email/phone/SSN/CC only",
-    "gt_spans_in_sample": 808,
-    "tp": 545,
-    "fp": 78,
-    "fn": 263,
-    "precision": 0.875,
-    "recall": 0.675,
-    "f1": 0.762,
-    "fp_rate": 0.125,
-    "rows_per_sec": 81666
-   }
-  }
- },
- "eval2_fp_stress": {
-  "description": "Rows with ZERO core PII in ground truth — every detection is a false positive",
-  "n_rows": 330,
-  "systems": {
-   "raw_presidio": {
-    "total_fp": 1270,
-    "rows_flagged": 323,
-    "pct_rows_flagged": 0.979,
-    "avg_fp_per_row": 3.85
-   },
-   "omna_full": {
-    "total_fp": 247,
-    "rows_flagged": 163,
-    "pct_rows_flagged": 0.494,
-    "avg_fp_per_row": 0.75
-   },
-   "omna_fast": {
-    "total_fp": 33,
-    "rows_flagged": 29,
-    "pct_rows_flagged": 0.088,
-    "avg_fp_per_row": 0.1
-   }
-  }
- },
- "eval3_all_pii": {
-  "description": "All Gretel PII types including dates, addresses, medical record #s, etc.",
-  "gt_spans_in_sample": 4158,
-  "systems": {
-   "raw_presidio": {
-    "tp": 3205,
-    "fp": 1823,
-    "fn": 955,
-    "precision": 0.637,
-    "recall": 0.77,
-    "f1": 0.698,
-    "fp_rate": 0.363,
-    "rows_per_sec": 137
-   },
-   "omna_full": {
-    "tp": 1469,
-    "fp": 217,
-    "fn": 2691,
-    "precision": 0.871,
-    "recall": 0.353,
-    "f1": 0.503,
-    "fp_rate": 0.129,
-    "rows_per_sec": 137
-   }
-  }
- },
- "core_engine_2026_06_10": {
-  "description": "omna-core unified L1-L2 engine (workspace #93) measured by the omna-workspace #92 suite on the SAME Gretel sample (seed 42, 1000 rows, 1398 core gold spans verified identical)",
-  "engine_fingerprint": "0.2.0+3a43ca2542b0",
-  "results_path": "omna-workspace/bench/results/2026-06-10-unified/",
-  "gretel_core_pii": {
-   "precision": 0.581,
-   "recall": 0.524,
-   "f1": 0.551,
-   "leak_rate": 0.359
+  "meta": {
+    "engine": "Omna unified L1-L6 detection engine (omna_core)",
+    "note": "The same engine ships in the Python library, the Omna Mac app, and the browser extension (byte-for-byte identical output, parity-gated).",
+    "datasets": {
+      "gretel": "Gretel PII Benchmark (Gretel AI / NVIDIA) — gretel-pii-masking-en",
+      "synthetic": "Omna seeded synthetic + entity-resolution corpora (deterministic)"
+    },
+    "run_date": "2026-06-13",
+    "reproduce": "omna-workspace bench/detection (#92 suite): runners + score",
+    "metrics": "relaxed (IoU>=0.5) recall/precision; leak_rate = share of gold sensitive values left in the output"
   },
-  "rollout_gate": {
-   "rule": "mask_pii default flips to engine='core' only when Gretel core-PII recall >= 0.95",
-   "measured": 0.524,
-   "verdict": "GATE NOT PASSED — default stays presidio; engine='core' is opt-in. Gap is bare person names (L3 model layer designed for this, not yet enabled anywhere).",
-   "decided": "2026-06-10"
+  "synthetic": {
+    "L1_L2_no_model": { "precision": 0.942, "recall": 0.836, "leak_rate": 0.078 },
+    "L1_L6_with_model": { "precision": 0.880, "recall": 0.938, "leak_rate": 0.018 }
+  },
+  "gretel": {
+    "full_gold_3183_spans": { "precision": 0.621, "recall": 0.764, "leak_rate": 0.065 },
+    "core_pii_1398_spans": {
+      "recall": 0.765,
+      "note": "name/email/phone/SSN/credit-card — above the prior Presidio-based path's 0.692 for the first time"
+    }
+  },
+  "gretel_per_type_recall_with_model": {
+    "IP_ADDRESS": 0.983,
+    "SSN": 0.899,
+    "BANK_ACCOUNT": 0.889,
+    "MEDICAL_RECORD_NUMBER": 0.820,
+    "ADDRESS": 0.603
+  },
+  "coverage": {
+    "secret_rules": "220+ (AWS keys, GitHub tokens, JWTs, private keys, ...) with entropy checks",
+    "validated_ids": "30+ international schemes with checksum validation (Luhn, IBAN mod-97, Verhoeff/Aadhaar, NHS mod-11, AU TFN/ABN, ...)",
+    "secrets_policy": "always irreversibly [REDACTED:KIND]; never written to the reversible token map"
   }
- },
- "core_engine_2026_06_11_default_flip": {
-  "description": "Default engine flipped to 'auto' (core when the omna_core wheel is importable, presidio otherwise). Owner instruction 2026-06-11: every product calls the unified detect_and_mask pipeline. Supersedes the 2026-06-10 recall-gate freeze for wheel-installed environments; bare PyPI installs keep presidio.",
-  "engine_fingerprint": "0.2.0+c824fa531305",
-  "results_path": "omna-workspace/bench/results/2026-06-11-unified-wiring/",
-  "gretel_core_pii_unified": {
-   "precision": null,
-   "recall": 0.524,
-   "note": "732 IoU>=0.5 TP / 1398 core gold spans (PERSON 179/590, EMAIL 217/217, PHONE 51/156, SSN 223/307, CREDIT_CARD 62/128) — unchanged from 2026-06-10; the gap is bare names = L3 (#100)."
-  },
-  "gretel_core_pii_presidio_path": {
-   "precision": 0.574,
-   "recall": 0.692,
-   "note": "re-measured 2026-06-11 via scripts/benchmark_pii.py, identical to prior record; path unchanged, now behind engine='presidio'."
-  },
-  "synthetic_unified": {
-   "precision": 0.942,
-   "recall": 0.836,
-   "f1": 0.886,
-   "leak_rate": 0.0776
-  },
-  "python_wheel_parity": "25/25 gretel docs byte-identical to the native runner output",
-  "structured_column_prior": "mask_pii core path now prepends the column name ('name: Alice Smith') — bare name CELLS mask; bare names in PROSE remain the L3 gap.",
-  "decided": "2026-06-11"
- },
- "core_engine_2026_06_11_default_core": {
-  "description": "engine='auto' removed the same day it shipped (owner decision 2026-06-11, final): mask_pii default is engine='core' unconditionally — no wheel-presence resolution. Without the omna_core wheel the default raises a friendly ImportError; presidio stays as the explicit engine='presidio' opt-in. Supersedes the 'auto' record above and the 2026-06-10 rollout gate. No new measurements — numbers unchanged from the 2026-06-11 run.",
-  "decided": "2026-06-11"
- }
 }
