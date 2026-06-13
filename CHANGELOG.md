@@ -27,11 +27,14 @@ unchanged and backward-compatible.
   engine** runs in the Python library, the Omna Mac
   app, and the browser extension — output is byte-for-byte identical across all
   three (verified by a parity gate on every change).
-  - **Core-PII recall** (name / email / SSN / phone / card) is **0.77**,
-    measured on the Gretel PII benchmark — above the previous Presidio-based
-    path's 0.69 for the first time.
-  - **Leak rate** (share of sensitive values that slip through) is **2–6%** on
-    the Gretel benchmark.
+  - **Core-PII recall** (name / email / SSN / phone / card) is **0.84** with the
+    AI model — measured through the library on the Gretel PII benchmark (same
+    dataset/sample/scoring as the prior run), above the previous Presidio-based
+    path's **0.69**.
+  - **All-types precision 0.84 / recall 0.79 / F1 0.815** with the model on the
+    same benchmark. (See `docs/benchmark.md` — and note the core-PII *precision*
+    is artificially low because the engine detects far more types than that
+    5-type slice scores.)
   - Detection is checksum-validated (Luhn, IBAN mod-97, Verhoeff, NHS, and 30+
     international ID schemes) and includes **220+ secret-detection rules** (AWS
     keys, GitHub tokens, JWTs, …) with entropy checks. Secrets are always

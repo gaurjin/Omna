@@ -58,7 +58,8 @@ df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
 # A six-layer engine: regex + checksum-validated IDs + 220+ secret rules +
 # an on-device AI model — the SAME Rust engine as the Omna Mac app & extension.
 # Reversible [PERSON_1] tokens; secrets always irreversibly redacted. Local.
-# Benchmarked openly (1.8% leak rate with the model): see docs/benchmark.md.
+# Benchmarked openly on Gretel (core-PII recall 0.84 with the model, up from
+# 0.69 on the prior engine): see docs/benchmark.md.
 ```
 
 ---

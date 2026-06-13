@@ -31,34 +31,42 @@ from the engine's benchmark suite.
 Metrics are relaxed (IoU ≥ 0.5). **Leak rate** = the share of gold sensitive
 values left in the output — the number that actually matters for privacy.
 
-**Synthetic corpus**
+Measured on the **Gretel PII Benchmark** (Gretel AI / NVIDIA), 1,000 rows,
+seed 42 — the **same dataset, sample, and scoring as our original benchmark**;
+only the detector changed (it was Presidio then), so these are like-for-like.
+Reproducible: `python scripts/benchmark_pii.py --sample 1000 --seed 42 --model`.
 
-| Configuration | Precision | Recall | Leak rate |
+**Core PII** (name / email / phone / SSN / credit-card)
+
+| Configuration | Precision | Recall | F1 |
 |---|---|---|---|
-| L1+L2 (no model) | 0.942 | 0.836 | 7.8% |
-| **L1–L6 (with AI model)** | 0.880 | **0.938** | **1.8%** |
+| L1+L2 (no model) | 0.589 | 0.531 | 0.559 |
+| **L1–L6 (with AI model)** | 0.300\* | **0.840** | 0.442 |
 
-**Gretel PII Benchmark** (Gretel AI / NVIDIA)
+Recall of **0.840** with the model is well above the previous Presidio-based
+path's **0.692** — the engine catches *more* core PII, with no Presidio.
 
-| Slice | Precision | Recall | Leak rate |
+> \* The low core-PII *precision* is a **scoring artifact, not a weakness**: the
+> engine detects 30+ PII types, but this slice's gold contains only those 5, so
+> every correct detection of the other 25+ types (IPs, secrets, IDs, …) is
+> counted as a "false positive" here. The fair precision is the all-types view:
+
+**All PII types**
+
+| Configuration | Precision | Recall | F1 |
 |---|---|---|---|
-| Full gold (3,183 spans) | 0.621 | 0.764 | 6.5% |
-| Core PII (name/email/phone/SSN/card) | — | **0.765** | — |
-
-Core-PII recall of **0.765** is, for the first time, **above the previous
-Presidio-based path (0.69)** — with no Presidio and no spaCy.
-
-**Per-type recall on Gretel (with the model):** IP_ADDRESS 0.98 · SSN 0.90 ·
-BANK_ACCOUNT 0.89 · MEDICAL_RECORD_NUMBER 0.82 · ADDRESS 0.60.
+| L1+L2 (no model) | 0.948 | 0.287 | 0.440 |
+| **L1–L6 (with AI model)** | **0.840** | **0.791** | **0.815** |
 
 ## Why this is trustworthy
 
 - **Local.** Detection runs entirely on your machine — no cloud, no API key.
 - **The same engine everywhere.** Python library, Mac app, and browser
   extension share one Rust kernel, parity-checked so their output is identical.
-- **Measured, not asserted.** Every number here comes from the engine's
-  benchmark suite against public (Gretel) and seeded synthetic corpora, and is
-  reproducible.
+- **Measured, not asserted.** Every number here is measured **through the
+  Python library** on the public Gretel benchmark and is reproducible from one
+  command (`scripts/benchmark_pii.py`) — same dataset/sample/scoring as our
+  original run.
 - **Secrets are never reversible.** Credentials are redacted irreversibly by
   policy, not best-effort.
 

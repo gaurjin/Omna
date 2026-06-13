@@ -1,36 +1,28 @@
 {
   "meta": {
-    "engine": "Omna unified L1-L6 detection engine (omna_core)",
-    "note": "The same engine ships in the Python library, the Omna Mac app, and the browser extension (byte-for-byte identical output, parity-gated).",
-    "datasets": {
-      "gretel": "Gretel PII Benchmark (Gretel AI / NVIDIA) — gretel-pii-masking-en",
-      "synthetic": "Omna seeded synthetic + entity-resolution corpora (deterministic)"
-    },
+    "detector": "omna_core unified L1-L6 engine, measured THROUGH the Python library (the same path df.omna.mask_pii / pii_report use)",
+    "dataset": "Gretel PII Benchmark (Gretel AI / NVIDIA) — gretel-pii-masking-en",
+    "sample_size": 1000,
+    "seed": 42,
     "run_date": "2026-06-13",
-    "reproduce": "omna-workspace bench/detection (#92 suite): runners + score",
-    "metrics": "relaxed (IoU>=0.5) recall/precision; leak_rate = share of gold sensitive values left in the output"
+    "methodology": "Identical to the original 2026-04-28 run: gold spans from the `entities` column; a detection is a TP when it overlaps a gold span by >=1 char in the same text; greedy one-to-one matching. ONLY the detector changed (was Presidio), so these are like-for-like with the prior core-PII figures.",
+    "reproduce": "python scripts/benchmark_pii.py --sample 1000 --seed 42 --model"
   },
-  "synthetic": {
-    "L1_L2_no_model": { "precision": 0.942, "recall": 0.836, "leak_rate": 0.078 },
-    "L1_L6_with_model": { "precision": 0.880, "recall": 0.938, "leak_rate": 0.018 }
+  "core_pii": {
+    "description": "Gold limited to name / email / phone / SSN / credit-card",
+    "L1_L2": { "precision": 0.589, "recall": 0.531, "f1": 0.559 },
+    "L1_L6_with_model": { "precision": 0.300, "recall": 0.840, "f1": 0.442 },
+    "note": "Recall 0.840 with the model is well above the prior Presidio-based path (0.692) — the engine catches more core PII. The low core-PII PRECISION is a scoring artifact: the engine detects 30+ PII types, but this slice's gold contains only 5, so correct detections of the other 25+ types are counted as false positives here. See all_types for the fair precision."
   },
-  "gretel": {
-    "full_gold_3183_spans": { "precision": 0.621, "recall": 0.764, "leak_rate": 0.065 },
-    "core_pii_1398_spans": {
-      "recall": 0.765,
-      "note": "name/email/phone/SSN/credit-card — above the prior Presidio-based path's 0.692 for the first time"
-    }
-  },
-  "gretel_per_type_recall_with_model": {
-    "IP_ADDRESS": 0.983,
-    "SSN": 0.899,
-    "BANK_ACCOUNT": 0.889,
-    "MEDICAL_RECORD_NUMBER": 0.820,
-    "ADDRESS": 0.603
+  "all_types": {
+    "description": "Gold = all PII types present in the dataset",
+    "L1_L2": { "precision": 0.948, "recall": 0.287, "f1": 0.440 },
+    "L1_L6_with_model": { "precision": 0.840, "recall": 0.791, "f1": 0.815 }
   },
   "coverage": {
+    "entity_types": "30+ (people, gov/national IDs, financial, health, employment, digital/network)",
     "secret_rules": "220+ (AWS keys, GitHub tokens, JWTs, private keys, ...) with entropy checks",
-    "validated_ids": "30+ international schemes with checksum validation (Luhn, IBAN mod-97, Verhoeff/Aadhaar, NHS mod-11, AU TFN/ABN, ...)",
+    "validated_ids": "30+ international schemes with checksum validation (Luhn, IBAN mod-97, Verhoeff, NHS, ...)",
     "secrets_policy": "always irreversibly [REDACTED:KIND]; never written to the reversible token map"
   }
 }
