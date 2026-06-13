@@ -384,6 +384,16 @@ Star the repo to follow progress.
 
 ---
 
+## What's new
+
+The PII engine was rebuilt as Omna's own six-layer Rust pipeline (no Presidio,
+no spaCy) — the same engine now runs in the Python library, the Mac app, and the
+browser extension, with an opt-in on-device AI layer (`mask_pii(model=True)`)
+for contextual PII like bare names. Full details and benchmark numbers in
+**[CHANGELOG.md](CHANGELOG.md)**.
+
+---
+
 ## License
 
 | Layer | License |
