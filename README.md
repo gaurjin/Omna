@@ -157,14 +157,14 @@ Labels: `email` `phone` `name` `id` `date` `text` `numeric` `boolean` `category`
 <details>
 <summary><b>df.omna.embed(column)</b> — vectorize once, search forever</summary>
 
-Converts text to 384-dimensional vectors using FastEmbed (local ONNX, no API key). Saves to `.omna/{column}.parquet`. Run once — `search()` and `filter()` load it automatically on every subsequent call.
+Converts text to 768-dimensional vectors using FastEmbed (local ONNX, no API key). Saves to `.omna/{column}.parquet`. Run once — `search()` and `filter()` load it automatically on every subsequent call.
 
 ```python
 df.omna.embed("text")
 # → .omna/text.parquet
 ```
 
-Model: `BAAI/bge-small-en-v1.5` (~130 MB, downloaded once). Embed is a one-time cost.
+Model: `nomic-ai/nomic-embed-text-v1.5` (768-dim, downloaded once on first use) — the same embedding model the Omna Mac app uses. Embed is a one-time cost.
 
 | Hardware | 50k rows |
 |---|---|
@@ -291,8 +291,8 @@ Default model: `claude-haiku-4-5-20251001`.
 df.omna.search("insurance claim denied", on="text", k=5)
          │
          ▼
-   embedder.py       FastEmbed — BAAI/bge-small-en-v1.5, local ONNX
-                     query → [0.12, -0.34, 0.87, ...]  384-dim vector
+   embedder.py       FastEmbed — nomic-embed-text-v1.5, local ONNX
+                     query → [0.12, -0.34, 0.87, ...]  768-dim vector
          │
          ▼
    index.py          loads .omna/text.parquet → Arrow memory, zero-copy
@@ -306,7 +306,7 @@ df.omna.search("insurance claim denied", on="text", k=5)
    frame.py          slices result rows, attaches _score → pl.DataFrame
 ```
 
-The Rust kernel is under 70 lines. Dot products and norms in machine code, no intermediate allocations. 500,000 × 384-dim in under 10ms on a single core.
+The Rust kernel is under 70 lines. Dot products and norms in machine code, no intermediate allocations. 500,000 × 768-dim vectors scored in milliseconds on a single core.
 
 ---
 
@@ -319,7 +319,7 @@ The Rust kernel is under 70 lines. Dot products and norms in machine code, no in
 | Pandas + FAISS | ~25ms + index build | ~25ms + index build |
 | Polars keyword regex | 1ms — exact match only | 1ms — exact match only |
 
-Benchmarked on MacBook Air M5, `BAAI/bge-small-en-v1.5` (384-dim), 10-query median, warm index.
+Benchmarked on MacBook Air M5 with the prior 384-dim model, 10-query median, warm index. The current model (`nomic-embed-text-v1.5`, 768-dim) roughly doubles the per-query cosine cost — still single-digit-to-low-tens of milliseconds at these sizes.
 
 Omna inherits Polars' Arrow columnar memory. The Rust similarity kernel operates on the same memory — no copy into NumPy, no copy into a C buffer.
 

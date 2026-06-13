@@ -36,10 +36,15 @@ unchanged and backward-compatible.
     international ID schemes) and includes **220+ secret-detection rules** (AWS
     keys, GitHub tokens, JWTs, …) with entropy checks. Secrets are always
     redacted irreversibly and never written to the reversible token map.
-- **Semantic search model upgraded** from `AllMiniLML6V2` (384-dim) to
-  `nomic-embed-text-v1.5` (768-dim). On an internal 60-document / 18-query
-  retrieval benchmark, recall@10 improved from **0.93 → 1.00** — most of the
-  gain is on queries that share no keywords with the matching text.
+- **Semantic search model upgraded** from `BAAI/bge-small-en-v1.5` (384-dim) to
+  `nomic-embed-text-v1.5` (768-dim) — the same embedding model the Omna Mac app
+  uses, so search behaves consistently across products. nomic is a larger,
+  higher-recall model and is especially better on queries that share no
+  keywords with the matching text. It is used with its trained
+  `search_document:` / `search_query:` task prefixes. **Action required:** any
+  saved `.npz` index built on the old model must be rebuilt — just re-run
+  `df.omna.embed(column)` (old 384-dim and new 768-dim vectors are not
+  comparable).
 
 ### Added
 

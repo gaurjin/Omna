@@ -3,7 +3,18 @@ from __future__ import annotations
 
 import platform
 
-DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
+DEFAULT_MODEL = "nomic-ai/nomic-embed-text-v1.5"
+
+
+def _maybe_prefix(texts: list[str], kind: str, model_name: str) -> list[str]:
+    """Apply nomic's task-instruction prefixes (it was trained to require them:
+    ``search_document:`` on indexed text, ``search_query:`` on the query).
+    Other models (e.g. bge) don't use prefixes, so this is a no-op for them.
+    `kind` is "document" (default, index build) or "query" (search/filter)."""
+    if "nomic" in model_name.lower():
+        prefix = "search_query: " if kind == "query" else "search_document: "
+        return [prefix + t for t in texts]
+    return texts
 
 # Public cache dict — keyed by model name (preserves existing test surface).
 _cache: dict = {}
@@ -62,13 +73,16 @@ def _get_model(model_name: str = DEFAULT_MODEL):
     return _cache[model_name]
 
 
-def embed_texts(texts: list[str], batch_size: int = 32, chunk_size: int = 2_000):
+def embed_texts(texts: list[str], batch_size: int = 32, chunk_size: int = 2_000,
+                kind: str = "document"):
     """Embed texts in chunks to prevent CoreML/GPU from being overwhelmed.
 
     Args:
         texts: Strings to embed.
         batch_size: Internal ONNX batch size passed to FastEmbed.
         chunk_size: Number of texts per chunk. Default 2 000 keeps peak RAM under control.
+        kind: "document" (default — index build) or "query"; controls the
+            nomic task prefix (no-op for non-nomic models).
 
     Returns:
         List of raw numpy vectors, one per input text.
@@ -77,6 +91,7 @@ def embed_texts(texts: list[str], batch_size: int = 32, chunk_size: int = 2_000)
     import math
 
     model = _get_model()
+    texts = _maybe_prefix(texts, kind, DEFAULT_MODEL)
 
     if len(texts) <= chunk_size:
         vectors = list(model.embed(texts, batch_size=batch_size))
@@ -94,21 +109,25 @@ def embed_texts(texts: list[str], batch_size: int = 32, chunk_size: int = 2_000)
     return all_vectors
 
 
-def embed(texts: list[str], model_name: str = DEFAULT_MODEL) -> list[list[float]]:
+def embed(texts: list[str], model_name: str = DEFAULT_MODEL,
+          kind: str = "document") -> list[list[float]]:
     """Embed a list of texts and return a list of float vectors.
 
-    Uses FastEmbed locally — no API key required. The model is downloaded
-    once (~130 MB for the default) and cached on disk by FastEmbed.
+    Uses FastEmbed locally — no API key required. The model downloads once on
+    first use and is cached on disk by FastEmbed.
 
     Args:
         texts: Strings to embed.
         model_name: Any model name supported by FastEmbed.
+        kind: "document" (default) or "query" — controls the nomic task prefix.
+            search()/filter() pass "query"; index build uses "document".
 
     Returns:
         List of vectors, one per input text. Vector length depends on the model
-        (384 for the default BAAI/bge-small-en-v1.5).
+        (768 for the default nomic-embed-text-v1.5).
     """
     model = _get_model(model_name)
+    texts = _maybe_prefix(texts, kind, model_name)
     return [vec.tolist() for vec in model.embed(texts, batch_size=512)]
 
 

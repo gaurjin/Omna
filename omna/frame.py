@@ -379,7 +379,7 @@ class OmnaFrame:
                 f"No index for column '{on}'. Run df.omna.embed('{on}') first."
             )
         df, embeddings = index.load(path)
-        query_vec = np.array(embedder.embed([query])[0], dtype=np.float32)
+        query_vec = np.array(embedder.embed([query], kind="query")[0], dtype=np.float32)
         dim = embeddings.shape[1]
         flat_emb = np.ascontiguousarray(embeddings)
         hits = top_k_flat_np(query_vec, flat_emb, dim, k)
@@ -415,7 +415,7 @@ class OmnaFrame:
                 f"No index for column '{on}'. Run df.omna.embed('{on}') first."
             )
         df, embeddings = index.load(path)
-        concept_vec = np.array(embedder.embed([concept])[0], dtype=np.float32)
+        concept_vec = np.array(embedder.embed([concept], kind="query")[0], dtype=np.float32)
         dim = embeddings.shape[1]
         flat_emb = np.ascontiguousarray(embeddings)
         hits = top_k_flat_np(concept_vec, flat_emb, dim, len(df))

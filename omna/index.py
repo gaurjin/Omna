@@ -71,7 +71,7 @@ def load(path: str | Path) -> tuple[pl.DataFrame, np.ndarray]:
 
     The float32 embedding block is read via numpy's binary format — no Parquet
     schema parsing, no per-value type negotiation — so cold-load time is
-    bounded by I/O bandwidth (~1 s for 500 k × 384) rather than
+    bounded by I/O bandwidth (~1 s for 500 k × 768) rather than
     deserialisation overhead (~12 s with the old Parquet layout).
 
     Returns:
