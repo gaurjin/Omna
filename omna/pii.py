@@ -1,232 +1,31 @@
 """
-omna/pii.py — PII detection and masking with audit logging.
+omna/pii.py — PII detection and masking, powered by the omna-core engine.
 
-Performance design:
-  1. Analyzer is cached per worker process (built once, reused).
-  2. Sample-based column detection: scan 1,000 random rows first.
-  3. Deduplication: each unique text is masked exactly once; results are
-     expanded back to all rows.  Big win on columns with repeated values.
-  4. Single ProcessPoolExecutor shared across all columns — workers pay the
-     spaCy startup cost once and stay alive for every subsequent column.
-  5. All column batches submitted simultaneously so ProfileName and Text
-     overlap instead of running back-to-back.
-  6. fast=True mode: regex-only masking (no spaCy).  Catches email, phone,
-     SSN, credit card, URL in ~1-3 seconds per column.  Misses person names
-     in prose.  Recommended for long-text review columns.
+As of 2026-06-13 this module routes ENTIRELY to the unified L1–L6 Rust engine
+(`omna_core` wheel — the same kernel the Omna Mac app and browser extension
+ship). Microsoft Presidio + spaCy were removed: the Rust engine beats the old
+Presidio path on core-PII recall, adds 220+ secret rules and checksum-validated
+IDs, needs no Python ML dependencies, and produces reversible Shield tokens
+(`[PERSON_1]`, `[EMAIL_1]`, …) — except secrets/credentials, which are ALWAYS
+irreversibly `[REDACTED:<KIND>]`.
+
+The engine ships as a compiled wheel (`omna_core`). If it is not installed,
+every function here raises a friendly ImportError naming it.
 """
 
 from __future__ import annotations
 
-import os
-import re
-import random
 import datetime
+import os
+import random
 import concurrent.futures
 from typing import Optional
 
 import polars as pl
 
-# Matches spans that are already government-redacted (XXXX, XXXX XXXX, etc.)
-# We skip these so mask_pii() doesn't double-redact the government's own tokens.
-_XXXX_SPAN_RE = re.compile(r'^(XX+\s*)+$')
 
 # ---------------------------------------------------------------------------
-# Fast regex-only patterns (used when fast=True in mask_pii)
-#
-# Catches: email, phone (US/intl), SSN, credit card, URL.
-# Does NOT catch: person names, locations, organisations — those need spaCy.
-# Compiled once at import time so workers share the compiled objects.
-# ---------------------------------------------------------------------------
-
-_FAST_PATTERNS: list[re.Pattern] = [
-    # Email address
-    re.compile(r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b'),
-    # US phone: (555) 867-5309, 555-867-5309, +1 555 867 5309, etc.
-    re.compile(r'(?<!\d)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}(?!\d)'),
-    # US SSN: 123-45-6789
-    re.compile(r'\b\d{3}[-\s]\d{2}[-\s]\d{4}\b'),
-    # Credit card: 4 groups of 4 digits (with optional separators)
-    re.compile(r'\b(?:\d{4}[-\s]?){3}\d{4}\b'),
-    # URL starting with http/https
-    re.compile(r'https?://[^\s]+'),
-]
-
-
-def _mask_text_fast(text: str, replacement: str = "<REDACTED>") -> str:
-    """Regex-only masking — ~50x faster than Presidio, no spaCy NER required."""
-    if not text or not isinstance(text, str):
-        return text
-    spans: list[tuple[int, int]] = []
-    for pat in _FAST_PATTERNS:
-        for m in pat.finditer(text):
-            spans.append((m.start(), m.end()))
-    if not spans:
-        return text
-    # Sort descending and merge overlaps so we replace right-to-left safely
-    spans.sort(key=lambda x: x[0], reverse=True)
-    merged: list[list[int]] = []
-    for start, end in spans:
-        if merged and start < merged[-1][1]:
-            merged[-1][0] = min(merged[-1][0], start)
-            merged[-1][1] = max(merged[-1][1], end)
-        else:
-            merged.append([start, end])
-    chars = list(text)
-    for start, end in merged:
-        chars[start:end] = list(replacement)
-    return "".join(chars)
-
-
-def _mask_batch_fast(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
-    """Regex-only batch masking. Picklable for multiprocessing."""
-    return [_mask_text_fast(t, replacement) for t in texts]
-
-
-# ---------------------------------------------------------------------------
-# Entity-type allow-list for pii_report()
-#
-# Presidio proxies spaCy NER, which happily tags short alphanumeric codes
-# (B006K2ZZ7K → PERSON 0.85, B001GVISJM → LOCATION 0.85).  Only these
-# entity types represent actual personal data; the rest (LOCATION, NRP,
-# DATE_TIME, ORG …) are NLP concepts, not PII.
-# ---------------------------------------------------------------------------
-
-_REAL_PII_TYPES: frozenset[str] = frozenset({
-    "PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN",
-    "IBAN_CODE", "MEDICAL_LICENSE", "US_PASSPORT", "US_DRIVER_LICENSE",
-    "UK_NHS", "SG_NRIC_FIN", "AU_ABN", "AU_ACN", "AU_TFN", "AU_MEDICARE",
-    "IN_PAN", "IN_AADHAAR",
-})
-
-# Presidio's phone recogniser scores ~0.4; 0.35 is its own internal floor.
-_MIN_SCORE = 0.35
-_HIT_RATE_THRESHOLD = 0.10
-
-# ---------------------------------------------------------------------------
-# Process-local analyzer cache
-# Each worker process builds ONE analyzer and reuses it for all rows.
-# We never pass the analyzer across process boundaries (avoids pickle errors).
-# ---------------------------------------------------------------------------
-
-_ANALYZER = None  # module-level, lives inside each worker process
-
-# spaCy pipeline components that Presidio never uses.
-# Disabling them gives ~2x throughput with identical NER accuracy:
-# the ner component in en_core_web_lg has its own internal contextual
-# representations and does not depend on the shared tok2vec.
-_SPACY_UNUSED_PIPES = ("tok2vec", "tagger", "parser", "attribute_ruler", "lemmatizer")
-
-
-def _get_analyzer():
-    """Return the process-local Presidio analyzer, building it if needed."""
-    global _ANALYZER
-    if _ANALYZER is None:
-        try:
-            from presidio_analyzer import AnalyzerEngine
-        except ImportError:
-            raise ImportError(
-                "presidio-analyzer is required for pii_report() and mask_pii(). "
-                'Install it with:  pip install "omna[pii]"\n'
-                "Then:  python -m spacy download en_core_web_lg"
-            ) from None
-        _ANALYZER = AnalyzerEngine()
-        # Disable unused spaCy pipeline stages for ~2x speedup.
-        nlp = _ANALYZER.nlp_engine.nlp.get("en")
-        if nlp is not None:
-            keep = [p for p in nlp.pipe_names if p not in _SPACY_UNUSED_PIPES]
-            nlp.select_pipes(enable=keep)
-    return _ANALYZER
-
-
-# ---------------------------------------------------------------------------
-# Worker functions — these run inside child processes
-# ---------------------------------------------------------------------------
-
-def _analyze_text(text: str) -> list[str]:
-    """
-    Detect PII entity types in a single string.
-    Returns a list of entity type strings, e.g. ['PERSON', 'EMAIL_ADDRESS'].
-    """
-    if not text or not isinstance(text, str):
-        return []
-    analyzer = _get_analyzer()
-    results = analyzer.analyze(text=text, language="en")
-    return [r.entity_type for r in results]
-
-
-def _mask_text(text: str, replacement: str = "<REDACTED>") -> str:
-    """
-    Mask all PII in a single string.
-    Returns the masked string.
-    """
-    if not text or not isinstance(text, str):
-        return text
-    analyzer = _get_analyzer()
-    results = analyzer.analyze(text=text, language="en")
-    if not results:
-        return text
-    # Apply the same filters as pii_report: only genuine PII entity types
-    # at a meaningful confidence score.  Without this, spaCy mislabels things
-    # like "all hours" (DATE_TIME) or "XXXX" tokens as redactable entities.
-    real_results = [
-        r for r in results
-        if r.entity_type in _REAL_PII_TYPES and r.score >= _MIN_SCORE
-    ]
-    if not real_results:
-        return text
-    # Replace right-to-left so earlier character positions stay valid.
-    results_sorted = sorted(real_results, key=lambda r: r.start, reverse=True)
-    chars = list(text)
-    for r in results_sorted:
-        span_text = text[r.start:r.end]
-        if _XXXX_SPAN_RE.match(span_text.strip()):
-            continue  # already government-redacted — don't double-redact
-        chars[r.start:r.end] = list(replacement)
-    return "".join(chars)
-
-
-def _analyze_batch(texts: list[str]) -> list[list[str]]:
-    """
-    Analyze a batch of texts. Runs inside a worker process.
-    Returns a list of entity-type lists, one per input text.
-    """
-    return [_analyze_text(t) for t in texts]
-
-
-def _mask_batch(texts: list[str], replacement: str = "<REDACTED>") -> list[str]:
-    """
-    Mask a batch of texts. Runs inside a worker process.
-    Returns a list of masked strings, one per input text.
-    """
-    return [_mask_text(t, replacement) for t in texts]
-
-
-# ---------------------------------------------------------------------------
-# Column-level helpers
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# omna-core engine (2026-06-10 workspace #94; DEFAULT since 2026-06-11)
-#
-# Routes masking to the unified L1-L6 Rust engine (`omna_core` wheel, built
-# from omna-workspace bindings/omna-core-py — the SAME kernel the Mac app and
-# browser extension ship).
-#
-# DEFAULT IS engine="core" — unconditionally. Owner decision 2026-06-11
-# ("every product must call detect_and_mask()"; later the same day: no
-# "auto" resolution, the Rust engine is the default, period). Supersedes
-# both the 2026-06-10 recall-gate freeze and the short-lived "auto"
-# (core-when-wheel) default. Without the omna_core wheel the default raises
-# a friendly ImportError naming the wheel; presidio is parked, not deleted:
-# engine="presidio" forces it. Honest numbers, measured by the workspace
-# #92 suite: Gretel core-PII recall — unified engine 0.524 vs presidio-path
-# 0.692 (gap = bare person names, the L3 model layer's job, workspace #100);
-# synthetic corpus recall 0.836 unified vs 0.621 legacy-regex with leak rate
-# 0.078 vs 0.251, plus secrets coverage presidio has none of.
-#
-# Output semantics differ deliberately: engine="core" produces REVERSIBLE
-# Shield tokens ([PERSON_1], [EMAIL_1], ...) instead of "<REDACTED>", except
-# secrets/credentials which are ALWAYS irreversibly [REDACTED:<KIND>].
+# omna-core engine access
 # ---------------------------------------------------------------------------
 
 def _core_engine_available() -> bool:
@@ -237,22 +36,46 @@ def _core_engine_available() -> bool:
         return False
 
 
+def _require_core() -> None:
+    if not _core_engine_available():
+        raise ImportError(
+            "Omna's PII engine (the `omna_core` wheel) is not installed. "
+            "It ships as a compiled wheel built from omna-workspace "
+            "(target/wheels/omna_core-*.whl)."
+        )
+
+
+def _detect_entities(text: str, column: Optional[str] = None, model: bool = False) -> list[str]:
+    """Entity-type names the engine finds in `text` (e.g. ['PERSON','EMAIL']).
+
+    `column` (when given) is prepended as a ``"col: value"`` structure prior —
+    the same cue the mask step uses — so a labeled name column ("name: Alice
+    Smith") is detected where the bare value would not be. `model=True` adds L3
+    (the AI model) so contextual PII (bare prose names) is detected too."""
+    if not text or not isinstance(text, str):
+        return []
+    import omna_core
+    probe = f"{column}: {text}" if column else text
+    return [s["entity"] for s in omna_core.detect(probe, model=model)]
+
+
+# Hit-rate threshold for flagging a column as containing PII.
+_HIT_RATE_THRESHOLD = 0.10
+
+
 def _mask_batch_core(
     texts: list[str],
-    replacement: str = "<REDACTED>",
+    replacement: str = "<REDACTED>",  # ignored; token semantics are the engine's
     column: Optional[str] = None,
+    model: bool = False,
 ) -> list[str]:
-    """Mask a batch via the omna-core unified engine. `replacement` is
-    ignored (token semantics are the engine's, documented above) — the
-    parameter exists so this is signature-compatible with the other batch
-    workers for the process pool.
+    """Mask a batch via the omna-core unified engine. Picklable for the pool.
 
-    `column` (when given) is prepended as a ``"col: value"`` label cue —
-    the same structure prior the native row pipeline gets from its
-    ``"key: value | key: value"`` row format (omna-vision: structured data
-    runs the pipeline "with structure context (column names as priors)").
-    The prefix is stripped from the masked output; if a span ever swallowed
-    the label (defensive), the cell is re-masked without the prior."""
+    `column` (when given) is prepended as a ``"col: value"`` label cue — the
+    same structure prior the native row pipeline gets — then stripped from the
+    masked output. If a span ever swallowed the label, the cell is re-masked
+    without the prior (defensive). `model=True` enables L3 (the on-device AI
+    model) for contextual PII like bare prose names."""
     import omna_core
     out = []
     prefix = f"{column}: " if column else ""
@@ -260,110 +83,49 @@ def _mask_batch_core(
         if not t or not isinstance(t, str):
             out.append(t)
             continue
-        masked = omna_core.mask(prefix + t)["masked"]
+        masked = omna_core.mask(prefix + t, model=model)["masked"]
         if prefix:
             if masked.startswith(prefix):
                 masked = masked[len(prefix):]
             else:
-                masked = omna_core.mask(t)["masked"]
+                masked = omna_core.mask(t, model=model)["masked"]
         out.append(masked)
     return out
-
-
-def _sample_column_for_pii(values: list[str], sample_size: int = 1000) -> bool:
-    """
-    Sample up to `sample_size` non-null values from the column.
-    Returns True if ≥95% of sampled rows contain at least one PII entity.
-    This lets us skip scanning all 500k rows when a column is obviously PII.
-    """
-    non_null = [v for v in values if v and isinstance(v, str)]
-    if not non_null:
-        return False
-    sample = random.sample(non_null, min(sample_size, len(non_null)))
-    hits = sum(1 for text in sample if _analyze_text(text))
-    return (hits / len(sample)) >= 0.95
-
-
-def _parallel_map(fn, items: list, batch_size: int = 500) -> list:
-    """
-    Split `items` into batches, run `fn` on each batch in a separate
-    worker process (one process per CPU core), then flatten results.
-
-    `fn` must be a module-level function (picklable).
-    We do NOT pass the analyzer — each worker builds its own.
-    """
-    n_workers = os.cpu_count() or 1
-
-    # Split into batches
-    batches = [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
-
-    results = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as pool:
-        futures = [pool.submit(fn, batch) for batch in batches]
-        for future in concurrent.futures.as_completed(futures):
-            results.extend(future.result())
-
-    # as_completed returns out of order — we need to preserve row order.
-    # Redo with map() which preserves order:
-    results = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as pool:
-        for batch_result in pool.map(fn, batches):
-            results.extend(batch_result)
-
-    return results
 
 
 # ---------------------------------------------------------------------------
 # Public API — called from frame.py
 # ---------------------------------------------------------------------------
 
-def detect_pii_columns(df: pl.DataFrame, sample_size: int = 1000) -> dict[str, list[str]]:
+def detect_pii_columns(df: pl.DataFrame, sample_size: int = 1000, model: bool = False) -> dict[str, list[str]]:
     """
-    Scan string columns for PII using sample-based detection.
-
-    Uses the same filtering logic as pii_report():
-      - Only _REAL_PII_TYPES entities count (excludes LOCATION, NRP, DATE_TIME …)
-      - Score must be >= _MIN_SCORE (0.35) to suppress near-zero noise
-      - Hit rate must exceed _HIT_RATE_THRESHOLD (10%) of sampled rows
-      - At least 2 *distinct* text values must have triggered a hit — this
-        prevents a single repeated value (e.g. the same product code appearing
-        several times in a small slice) from falsely flagging the whole column.
+    Scan string columns for PII using sample-based detection on the omna-core
+    engine. A column is flagged when more than `_HIT_RATE_THRESHOLD` (10%) of
+    sampled rows contain at least one entity. The column name rides along as a
+    structure prior (so a "name" column is recognised). The engine is precise
+    (no over-firing), so no entity-type allow-list or repeated-value guard is
+    needed — both were heuristics for Presidio's noisy NER.
 
     Returns a dict mapping column name → sorted list of PII entity types found.
     """
+    _require_core()
     pii_columns: dict[str, list[str]] = {}
     string_cols = [c for c in df.columns if df[c].dtype == pl.Utf8]
-    analyzer = _get_analyzer()
 
     for col in string_cols:
-        values = df[col].to_list()
-        non_null = [v for v in values if v and isinstance(v, str)]
+        non_null = [v for v in df[col].to_list() if v and isinstance(v, str)]
         if not non_null:
             continue
-
         sample = random.sample(non_null, min(sample_size, len(non_null)))
         entity_types: set[str] = set()
         hits = 0
-        hit_values: set[str] = set()
-
         for text in sample:
-            results = analyzer.analyze(text=text, language="en")
-            real_hits = [
-                r for r in results
-                if r.entity_type in _REAL_PII_TYPES and r.score >= _MIN_SCORE
-            ]
-            if real_hits:
+            ents = _detect_entities(text, col, model)
+            if ents:
                 hits += 1
-                hit_values.add(text)
-                entity_types.update(r.entity_type for r in real_hits)
-
+                entity_types.update(ents)
         hit_rate = hits / len(sample) if sample else 0.0
-        # Require > 1 distinct text values with hits (prevents one repeated
-        # false-positive value from flagging the column), but skip that guard
-        # when hit_rate is very high (> 50%) — a column where half the rows
-        # contain PII is clearly PII even if they all share the same value.
-        distinct_hits = len(hit_values)
-        if hit_rate > _HIT_RATE_THRESHOLD and (distinct_hits > 1 or hit_rate > 0.5):
+        if hit_rate > _HIT_RATE_THRESHOLD:
             pii_columns[col] = sorted(entity_types)
 
     return pii_columns
@@ -371,77 +133,48 @@ def detect_pii_columns(df: pl.DataFrame, sample_size: int = 1000) -> dict[str, l
 
 def pii_report(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Scan the DataFrame for PII and return a report DataFrame.
+    Scan the DataFrame for PII (sample-based, 1,000 rows/column) via the
+    omna-core engine and return a report DataFrame:
 
-    Uses sample-based detection (1,000 rows per column) so it is fast
-    even on very large DataFrames.
-
-    False-positive suppression strategy:
-      1. Entity-type filter — only entities in _REAL_PII_TYPES are counted.
-         spaCy NER fires on alphanumeric codes (B006K2ZZ7K → PERSON 0.85,
-         B001GVISJM → LOCATION 0.85); LOCATION, NRP, DATE_TIME etc. are
-         discarded.  This drops ProductId-style columns from ~11% hit rate to
-         ~5% before the threshold is even applied.
-      2. Minimum score — results with score < _MIN_SCORE (0.35) are ignored.
-         Presidio's phone recogniser scores 0.4; this floor catches it while
-         still discarding near-zero noise.
-      3. Hit-rate threshold — a column is only flagged when > 10% of sampled
-         rows contain at least one qualifying entity.
-
-    Returns a Polars DataFrame with columns:
       column | pii_types | sample_size | rows_with_pii | flagged | avg_confidence
+
+    Nothing is modified. A column is `flagged` when > 10% of sampled rows
+    contain at least one entity.
     """
+    _require_core()
+    import omna_core
+
     rows = []
     string_cols = [c for c in df.columns if df[c].dtype == pl.Utf8]
     sample_size = 1000
 
-    analyzer = _get_analyzer()
-
     for col in string_cols:
-        values = df[col].to_list()
-        non_null = [v for v in values if v and isinstance(v, str)]
+        non_null = [v for v in df[col].to_list() if v and isinstance(v, str)]
         if not non_null:
             continue
-
         sample = random.sample(non_null, min(sample_size, len(non_null)))
         entity_types: set[str] = set()
-        hits = 0
         conf_scores: list[float] = []
-
+        hits = 0
         for text in sample:
-            results = analyzer.analyze(text=text, language="en")
-            real_hits = [
-                r for r in results
-                if r.entity_type in _REAL_PII_TYPES and r.score >= _MIN_SCORE
-            ]
-            if real_hits:
+            spans = omna_core.detect(f"{col}: {text}")
+            if spans:
                 hits += 1
-                conf_scores.extend(r.score for r in real_hits)
-                entity_types.update(r.entity_type for r in real_hits)
-
+                entity_types.update(s["entity"] for s in spans)
+                conf_scores.extend(float(s["confidence"]) for s in spans)
         hit_rate = hits / len(sample) if sample else 0.0
         avg_conf = sum(conf_scores) / len(conf_scores) if conf_scores else 0.0
-        flagged = hit_rate > _HIT_RATE_THRESHOLD
-
         rows.append({
             "column": col,
             "pii_types": ", ".join(sorted(entity_types)) if entity_types else "",
             "sample_size": len(sample),
             "rows_with_pii": hits,
-            "flagged": flagged,
+            "flagged": hit_rate > _HIT_RATE_THRESHOLD,
             "avg_confidence": round(avg_conf, 3),
         })
 
     if not rows:
-        return pl.DataFrame(schema={
-            "column": pl.Utf8,
-            "pii_types": pl.Utf8,
-            "sample_size": pl.Int64,
-            "rows_with_pii": pl.Int64,
-            "flagged": pl.Boolean,
-            "avg_confidence": pl.Float64,
-        })
-
+        return pl.DataFrame(schema=_REPORT_SCHEMA)
     return pl.DataFrame(rows)
 
 
@@ -450,66 +183,44 @@ def mask_pii(
     columns: Optional[list[str]] = None,
     replacement: str = "<REDACTED>",
     audit_path: Optional[str] = None,
-    fast: bool = False,
-    engine: str = "core",
+    model: bool = False,
 ) -> pl.DataFrame:
     """
-    Mask PII in all string columns (or the specified columns).
+    Mask PII in all string columns (or the specified columns) with the unified
+    omna-core engine: reversible `[PERSON_1]`-style Shield tokens, secrets
+    always irreversibly `[REDACTED:<KIND>]`, checksum-validated IDs, 220+ secret
+    rules. Same kernel as the Omna Mac app and browser extension.
 
     Parameters
     ----------
     df : pl.DataFrame
-    columns : list of column names to mask, or None to auto-detect
-    replacement : string to replace PII with (default "<REDACTED>")
-    audit_path : path to write audit log (CSV), or None to skip
-    fast : bool, default False
-        If True, use regex-only masking instead of full Presidio + spaCy.
-        Catches email, phone, SSN, credit card, URL.
-        Does NOT catch person names written in prose.
-        ~10-50x faster on long-text columns — recommended for review/body text.
-        If False (default), use full Presidio with spaCy NER for maximum recall.
-    engine : "core" (default) or "presidio"
-        "core" routes to the unified Rust engine (`omna_core` wheel — the same
-        kernel as the Omna Mac app and browser extension): reversible
-        [PERSON_1]-style tokens, secrets always irreversibly redacted,
-        checksum-validated IDs, 220+ secret rules. Ignores `replacement` and
-        `fast`. The default requires the omna-core wheel (friendly
-        ImportError with an install hint otherwise); "presidio" forces the
-        legacy Presidio path (owner decision 2026-06-11 — see the module
-        comment above _mask_batch_core).
+    columns : column names to mask, or None to auto-detect
+    replacement : retained for signature compatibility; IGNORED (token
+        semantics are the engine's)
+    audit_path : path to write an audit log (CSV), or None to skip
+    model : if True, enable L3 — the on-device AI model that catches contextual
+        PII regex can't (bare prose names, addresses). The model (~809 MB)
+        downloads once on first use. Runs single-process so the model loads
+        once (not per CPU core).
 
     Returns a new DataFrame with PII masked.
     """
-    if engine not in ("presidio", "core"):
-        raise ValueError(
-            f"unknown engine {engine!r} (use 'core' or 'presidio')"
-        )
-    if engine == "core" and not _core_engine_available():
-        raise ImportError(
-            "engine='core' requires the omna-core wheel. It is not yet on "
-            "PyPI; install it from the omna-workspace build "
-            "(target/wheels/omna_core-*.whl)."
-        )
+    _require_core()
     if columns is None:
-        detected = detect_pii_columns(df, sample_size=1000)
-        columns = list(detected.keys())
-
+        columns = list(detect_pii_columns(df, sample_size=1000, model=model).keys())
     columns = [c for c in columns if c in df.columns and df[c].dtype == pl.Utf8]
     if not columns:
         return df
 
-    if engine == "core":
-        batch_fn = _mask_batch_core
-    else:
-        batch_fn = _mask_batch_fast if fast else _mask_batch
-    n_workers = os.cpu_count() or 1
-    # Large batches minimise IPC overhead; workers stay busy per batch.
+    # model=True loads a ~809 MB model — keep it to ONE worker so it loads once,
+    # not once per core. L1+L2 (model=False) parallelises freely.
+    n_workers = 1 if model else (os.cpu_count() or 1)
     batch_size = max(500, 50_000 // n_workers)
 
     masked_df = df.clone()
     audit_rows = []
 
-    # Build deduplication maps upfront — mask each unique text exactly once.
+    # Deduplicate — mask each unique value exactly once.
     col_meta: dict[str, tuple[list, list]] = {}
     for col in columns:
         values = df[col].to_list()
@@ -521,9 +232,6 @@ def mask_pii(
                 unique_vals.append(v)
         col_meta[col] = (values, unique_vals)
 
-    # Single pool shared across all columns — workers pay the spaCy startup
-    # cost once.  Submit batches for ALL columns simultaneously so ProfileName
-    # (fast) and Text (slow) process in true parallel overlap.
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as pool:
         col_futures: dict[str, list] = {}
         for col in columns:
@@ -532,39 +240,27 @@ def mask_pii(
                 unique_vals[i : i + batch_size]
                 for i in range(0, len(unique_vals), batch_size)
             ]
-            if engine == "core":
-                # Column name rides along as a structure prior (see
-                # _mask_batch_core) — "name: Alice Smith" masks where the
-                # bare cell "Alice Smith" would not.
-                col_futures[col] = [
-                    pool.submit(batch_fn, b, replacement, col) for b in batches
-                ]
-            else:
-                col_futures[col] = [
-                    pool.submit(batch_fn, b, replacement) for b in batches
-                ]
+            # Column name rides along as a structure prior (see _mask_batch_core).
+            col_futures[col] = [
+                pool.submit(_mask_batch_core, b, replacement, col, model) for b in batches
+            ]
 
-        # Collect results in column order (order within each column preserved)
         for col in columns:
             values, unique_vals = col_meta[col]
             masked_unique: list[str] = []
             for f in col_futures[col]:
                 masked_unique.extend(f.result())
-
             mask_map = dict(zip(unique_vals, masked_unique))
             masked_values = [mask_map[v] if v is not None else None for v in values]
-
-            masked_df = masked_df.with_columns(
-                pl.Series(name=col, values=masked_values)
-            )
+            masked_df = masked_df.with_columns(pl.Series(name=col, values=masked_values))
             changed = sum(1 for a, b in zip(values, masked_values) if a != b)
             audit_rows.append({
-                "timestamp": datetime.datetime.utcnow().isoformat(),
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "column": col,
                 "rows_scanned": len(values),
                 "rows_masked": changed,
-                "replacement": replacement if engine != "core" else "shield-tokens",
-                "engine": engine,
+                "replacement": "shield-tokens",
+                "engine": "core",
             })
 
     if audit_path and audit_rows:
@@ -574,7 +270,7 @@ def mask_pii(
 
 
 # ---------------------------------------------------------------------------
-# Backwards-compatible aliases — keeps existing tests passing
+# Backwards-compatible aliases — keeps existing tests/imports working
 # ---------------------------------------------------------------------------
 
 #: Schema used by pii_report() — exported for tests
@@ -587,6 +283,5 @@ _REPORT_SCHEMA = {
     "avg_confidence": pl.Float64,
 }
 
-# Old names that tests import directly
 report = pii_report
 mask = mask_pii

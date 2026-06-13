@@ -1,5 +1,11 @@
 # We benchmarked Omna's PII detection against the industry standard. Here's what we found.
 
+> **Historical note (superseded).** This page documents the original
+> Presidio-wrapping engine (early 2026). Omna's PII engine was since rebuilt as
+> a self-contained six-layer Rust pipeline with no Presidio or spaCy — and a
+> new optional on-device AI layer. See **[CHANGELOG.md](../CHANGELOG.md)** for
+> the current engine and its numbers. The analysis below is kept for context.
+
 ## Why we needed a benchmark
 
 I built Omna while watching the same problem play out every day on a trading floor.

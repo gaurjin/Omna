@@ -22,7 +22,9 @@ def test_report_schema():
 
 
 def test_report_detects_person():
-    df = pl.DataFrame({"text": ["Call Alice Smith tomorrow."]})
+    # Titled/labeled names are caught at L1; a bare prose name ("Call Alice
+    # Smith") is the L3 model's job, not reported by the L1+L2 scan.
+    df = pl.DataFrame({"text": ["Call Dr. Alice Smith tomorrow."]})
     result = report(df)
     assert "PERSON" in result["pii_types"][0]
 
@@ -30,13 +32,13 @@ def test_report_detects_person():
 def test_report_detects_email():
     df = pl.DataFrame({"text": ["Send to alice@example.com please."]})
     result = report(df)
-    assert "EMAIL_ADDRESS" in result["pii_types"][0]
+    assert "EMAIL" in result["pii_types"][0]
 
 
 def test_report_detects_phone():
     df = pl.DataFrame({"text": ["Call me at 555-867-5309 anytime."]})
     result = report(df)
-    assert "PHONE_NUMBER" in result["pii_types"][0]
+    assert "PHONE" in result["pii_types"][0]
 
 
 def test_report_clean_text_returns_empty():
@@ -89,17 +91,12 @@ def test_mask_replaces_email():
     df = pl.DataFrame({"text": ["Contact alice@example.com for details."]})
     masked_df = mask(df)
     assert "alice@example.com" not in masked_df["text"][0]
-    # The presidio path keeps its replacement-string semantics.
-    presidio_df = mask(df, engine="presidio")
-    assert "<REDACTED>" in presidio_df["text"][0]
 
 
 def test_mask_replaces_person():
     df = pl.DataFrame({"text": ["My name is Alice Smith."]})
     masked_df = mask(df)
     assert "Alice Smith" not in masked_df["text"][0]
-    presidio_df = mask(df, engine="presidio")
-    assert "<REDACTED>" in presidio_df["text"][0]
 
 
 def test_mask_clean_text_unchanged():
@@ -145,9 +142,6 @@ def test_mask_multiple_columns():
     })
     masked_df = mask(df)
     # Core path masks the bare name cell via the column-name prior
-    # ("name: Alice Smith"); presidio via spaCy NER. Either way: gone.
+    # ("name: Alice Smith").
     assert "Alice Smith" not in masked_df["name"][0]
     assert "alice@example.com" not in masked_df["contact"][0]
-    presidio_df = mask(df, engine="presidio")
-    assert "<REDACTED>" in presidio_df["name"][0]
-    assert "<REDACTED>" in presidio_df["contact"][0]

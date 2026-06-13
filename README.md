@@ -78,10 +78,9 @@ Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,0
 
 ```bash
 pip install "omna[all]"
-python -m spacy download en_core_web_lg   # one-time, for PII detection
 ```
 
-Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[pii]` (masking), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_core` engine (no Presidio, no spaCy). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 
@@ -235,24 +234,24 @@ Scans every string column. Returns hit rates, PII types, and confidence scores. 
 
 ```python
 clean = df.omna.mask_pii()
-# → routes to the unified Omna detection engine (same Rust kernel as the
-#   Omna Mac app + browser extension): reversible [PERSON_1]-style tokens;
-#   credentials/secrets always irreversibly [REDACTED:KIND]; checksum-
-#   validated IDs; 220+ secret-detection rules
+# → Omna's own six-layer Rust engine (same kernel as the Mac app + browser
+#   extension): reversible [PERSON_1]-style tokens; credentials/secrets
+#   always irreversibly [REDACTED:KIND]; checksum-validated IDs; 220+ secret
+#   rules. No Presidio, no spaCy.
 # → audit log saved to .omna/pii_audit.parquet automatically
-# Requires the omna-core wheel (not yet on PyPI — install it from the
-# omna-workspace build); see benchmarks.json for measured recall.
+
+clean = df.omna.mask_pii(model=True)
+# → adds L3, the on-device AI model, for contextual PII regex can't catch
+#   (bare prose names, addresses). Downloads the model (~809 MB) once.
+# Requires the omna-core wheel (built from omna-workspace); see CHANGELOG.md.
 ```
 
-Detects: `PERSON` `EMAIL_ADDRESS` `PHONE_NUMBER` `CREDIT_CARD` `US_SSN` `US_PASSPORT` `IP_ADDRESS` `IBAN_CODE` `URL` and more.
+Detects: `PERSON` `EMAIL` `PHONE` `CREDIT_CARD` `US_SSN` `IP_ADDRESS` `IBAN` `MEDICAL_RECORD_NUMBER` `BANK_ACCOUNT`, 220+ secret types, and 30+ international IDs — checksum-validated where applicable.
 
 ```python
-# Legacy engine — Presidio + spaCy, <REDACTED> markers instead of tokens
-clean = df.omna.mask_pii(engine="presidio")
-
-# Fast mode (presidio only) — regex only, ~10x faster, catches
-# email/phone/SSN/URL
-clean = df.omna.mask_pii(engine="presidio", fast=True)
+# Add the on-device AI layer (L3) for contextual PII regex can't catch —
+# bare names, addresses, medical context. Downloads the model once.
+clean = df.omna.mask_pii()              # L1+L2 (instant, deterministic)
 ```
 
 </details>
@@ -352,7 +351,7 @@ Those are vector databases. Omna is a Polars plugin. If your data already lives 
 <details>
 <summary><b>What PII types does Omna detect?</b></summary>
 
-`PERSON`, `EMAIL_ADDRESS`, `PHONE_NUMBER`, `CREDIT_CARD`, `US_SSN`, `US_PASSPORT`, `IP_ADDRESS`, `IBAN_CODE`, `URL`, `DATE_TIME`, `LOCATION`, and more. Detection uses Microsoft Presidio + spaCy NER, running fully local.
+`PERSON`, `EMAIL`, `PHONE`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN`, `MEDICAL_RECORD_NUMBER`, `BANK_ACCOUNT`, 220+ secret types (API keys, tokens), and 30+ international IDs, and more. Detection runs on Omna's own six-layer Rust engine — fully local, no Presidio, no spaCy.
 
 </details>
 

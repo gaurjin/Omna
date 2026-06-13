@@ -26,56 +26,38 @@ def _df():
     )
 
 
-def test_engine_core_masks_with_shield_tokens():
-    out = mask_pii(_df(), columns=["email", "ssn"], engine="core")
+def test_core_masks_with_shield_tokens():
+    out = mask_pii(_df(), columns=["email", "ssn"])
     assert out["email"].to_list()[0].startswith("[EMAIL_")
     assert out["ssn"].to_list()[0].startswith("[GOV_ID_")
 
 
-def test_engine_core_redacts_secrets_irreversibly():
-    out = mask_pii(_df(), columns=["notes"], engine="core")
+def test_core_redacts_secrets_irreversibly():
+    out = mask_pii(_df(), columns=["notes"])
     cell = out["notes"].to_list()[0]
     assert "AKIA" not in cell
     assert "[REDACTED:" in cell
 
 
-def test_engine_default_is_core():
-    """Owner decision 2026-06-11 (final): the unified Rust engine IS the
-    default — no "auto" resolution, period. presidio is an explicit opt-in
-    (engine="presidio"); without the omna_core wheel the default raises the
-    friendly ImportError naming the wheel. Supersedes the "auto" default
-    shipped earlier the same day and the 2026-06-10 gate-freeze test;
-    measured numbers stay recorded in benchmarks.json.
+def test_core_is_the_only_engine():
+    """Presidio + spaCy were removed 2026-06-13 — the unified Rust engine is
+    the sole masking path (no `engine=` parameter, no legacy fallback). The
+    engine ported Presidio's useful rules into L1 and replaced its spaCy NER
+    with the L3 model, so the dependency is gone with no loss of capability.
     """
     import inspect
 
     from omna.pii import mask_pii as mp
 
-    sig = inspect.signature(mp)
-    assert sig.parameters["engine"].default == "core"
-    # The default path produces unified-engine Shield tokens.
+    assert "engine" not in inspect.signature(mp).parameters
     out = mask_pii(_df(), columns=["email"])
     assert out["email"].to_list()[0].startswith("[EMAIL_")
 
 
-def test_engine_auto_is_gone():
-    """"auto" was removed 2026-06-11 — it must now be rejected like any
-    unknown engine name so stale call sites fail loudly, not silently."""
-    with pytest.raises(ValueError):
-        mask_pii(_df(), columns=["email"], engine="auto")
-
-
-def test_namespace_mask_pii_accepts_engine(tmp_path):
-    """README documents df.omna.mask_pii(engine=...) — the namespace method
-    must pass it through (it TypeError'd before 2026-06-11)."""
-    df = _df()
-    out = df.omna.mask_pii(audit_path=tmp_path / "a.parquet", engine="presidio")
-    assert "<REDACTED>" in out["email"].to_list()[0]
-
-
-def test_engine_rejects_unknown_name():
-    with pytest.raises(ValueError):
-        mask_pii(_df(), columns=["email"], engine="nope")
+def test_namespace_mask_pii_works(tmp_path):
+    """The df.omna.mask_pii namespace method masks via the core engine."""
+    out = _df().omna.mask_pii(audit_path=tmp_path / "a.parquet")
+    assert out["email"].to_list()[0].startswith("[EMAIL_")
 
 
 def test_ask_serialize_masks_sample_rows():

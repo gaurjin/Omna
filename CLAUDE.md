@@ -8,8 +8,9 @@ developers can call df.omna.search(), df.omna.mask_pii(),
 and omna.understand(df).
 
 ## Tech stack
-- Python: Polars namespace, FastEmbed, Presidio,
-  index persistence
+- Python: Polars namespace, FastEmbed, index persistence
+- PII: the compiled `omna_core` wheel (unified L1–L6 Rust engine — no
+  Presidio, no spaCy; removed 2026-06-13). `omna/pii.py` routes to it.
 - Rust: cosine similarity kernel only (src/similarity.rs)
 - Build tool: maturin
 - Package manager: uv
@@ -22,7 +23,7 @@ omna/
 ├── omna/frame.py          # All df.omna.* public methods
 ├── omna/embedder.py       # FastEmbed wrapper
 ├── omna/index.py          # Save/load embeddings (Parquet)
-├── omna/pii.py            # Presidio PII detection + audit
+├── omna/pii.py            # PII detection + masking via the omna_core engine
 ├── omna/understand.py     # Schema inference
 └── omna/ask.py            # LLM query layer
 

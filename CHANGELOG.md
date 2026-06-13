@@ -10,13 +10,20 @@ These changes ship with the `omna-core` detection-engine wheel (currently built
 from `omna-workspace`; not yet on PyPI). The pure-Python `omna` package API is
 unchanged and backward-compatible.
 
+### Removed
+
+- **Microsoft Presidio + spaCy are gone.** `presidio-analyzer`,
+  `presidio-anonymizer`, the spaCy model download, and the `engine="presidio"`
+  / `fast=` options were all removed. Their value was extracted first —
+  Presidio's detection rules were ported into the engine's L1 layer and its
+  spaCy NER was replaced by the L3 model — so there is no loss of capability,
+  just a heavy redundant dependency deleted. `mask_pii()` / `pii_report()` now
+  have no Python ML dependencies.
+
 ### Changed
 
-- **PII detection engine rebuilt as Omna's own six-layer pipeline.** The
-  default masking path no longer wraps Microsoft Presidio + spaCy; it is a
-  self-contained Rust engine (`engine="core"`, the default) that uses neither.
-  The legacy Presidio + spaCy path stays available as `engine="presidio"` and
-  will be removed once the Rust wheel is published to PyPI. The **same Rust
+- **PII detection engine rebuilt as Omna's own six-layer pipeline.** Masking is
+  a self-contained Rust engine — no Presidio, no spaCy. The **same Rust
   engine** runs in the Python library, the Omna Mac
   app, and the browser extension — output is byte-for-byte identical across all
   three (verified by a parity gate on every change).

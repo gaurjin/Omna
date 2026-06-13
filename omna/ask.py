@@ -14,16 +14,19 @@ def _mask_sample_text(text: str) -> str:
     (2026-06-10 fix for the cross-product audit's #2 finding: ask() used to
     send 20 RAW rows to the Anthropic API).
 
-    Engine choice mirrors mask_pii: the unified omna-core engine when the
-    wheel is installed (reversible tokens, secrets always redacted),
-    otherwise the fast regex path (email/phone/SSN/card/URL) — never nothing.
+    Masking uses the unified omna-core engine (reversible tokens, secrets
+    always redacted). If the engine isn't installed we raise rather than send
+    unmasked rows to the API — privacy must never silently degrade here.
     """
     try:
         import omna_core
-        return omna_core.mask(text)["masked"]
     except ImportError:
-        from .pii import _mask_text_fast
-        return _mask_text_fast(text)
+        raise ImportError(
+            "ask() masks the sampled rows before sending them to the API, "
+            "which needs the `omna_core` wheel. Install it, or pass "
+            "mask_rows=False to send raw rows (synthetic/public data only)."
+        ) from None
+    return omna_core.mask(text)["masked"]
 
 
 def _serialize(df: pl.DataFrame, mask_rows: bool = True) -> str:
