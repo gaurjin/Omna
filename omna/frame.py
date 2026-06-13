@@ -438,7 +438,7 @@ class OmnaFrame:
         Powered by the unified omna-core Rust engine (the same kernel as the
         Omna Mac app and browser extension): reversible [PERSON_1]-style Shield
         tokens, secrets always irreversibly [REDACTED:<KIND>], checksum-
-        validated IDs, 220+ secret rules. No Presidio, no spaCy.
+        validated IDs, 220+ secret rules. No heavy Python ML dependencies.
 
         Args:
             audit_path: Override the default audit log location.

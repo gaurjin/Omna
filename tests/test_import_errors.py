@@ -16,7 +16,7 @@ def test_embedder_missing_fastembed_names_the_extra(monkeypatch):
 
 def test_pii_missing_core_wheel_names_it(monkeypatch):
     """With the omna_core wheel absent, the PII functions raise an ImportError
-    that names the wheel (Presidio/spaCy were removed 2026-06-13)."""
+    that names the wheel."""
     monkeypatch.setitem(sys.modules, "omna_core", None)  # forces ImportError
     from omna import pii
 

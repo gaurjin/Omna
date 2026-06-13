@@ -80,7 +80,7 @@ Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,0
 pip install "omna[all]"
 ```
 
-Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_core` engine (no Presidio, no spaCy). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_core` engine (no heavy Python ML dependencies). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 
@@ -237,7 +237,7 @@ clean = df.omna.mask_pii()
 # → Omna's own six-layer Rust engine (same kernel as the Mac app + browser
 #   extension): reversible [PERSON_1]-style tokens; credentials/secrets
 #   always irreversibly [REDACTED:KIND]; checksum-validated IDs; 220+ secret
-#   rules. No Presidio, no spaCy.
+#   rules. No heavy Python ML dependencies.
 # → audit log saved to .omna/pii_audit.parquet automatically
 
 clean = df.omna.mask_pii(model=True)
@@ -351,7 +351,7 @@ Those are vector databases. Omna is a Polars plugin. If your data already lives 
 <details>
 <summary><b>What PII types does Omna detect?</b></summary>
 
-`PERSON`, `EMAIL`, `PHONE`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN`, `MEDICAL_RECORD_NUMBER`, `BANK_ACCOUNT`, 220+ secret types (API keys, tokens), and 30+ international IDs, and more. Detection runs on Omna's own six-layer Rust engine — fully local, no Presidio, no spaCy.
+`PERSON`, `EMAIL`, `PHONE`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN`, `MEDICAL_RECORD_NUMBER`, `BANK_ACCOUNT`, 220+ secret types (API keys, tokens), and 30+ international IDs, and more. Detection runs on Omna's own six-layer Rust engine — fully local, no heavy Python ML dependencies.
 
 </details>
 
@@ -385,8 +385,8 @@ Star the repo to follow progress.
 
 ## What's new
 
-The PII engine was rebuilt as Omna's own six-layer Rust pipeline (no Presidio,
-no spaCy) — the same engine now runs in the Python library, the Mac app, and the
+The PII engine was rebuilt as Omna's own six-layer Rust pipeline (no heavy
+Python ML dependencies) — the same engine now runs in the Python library, the Mac app, and the
 browser extension, with an opt-in on-device AI layer (`mask_pii(model=True)`)
 for contextual PII like bare names. Full details and benchmark numbers in
 **[CHANGELOG.md](CHANGELOG.md)**.

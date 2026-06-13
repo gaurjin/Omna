@@ -9,8 +9,8 @@ and omna.understand(df).
 
 ## Tech stack
 - Python: Polars namespace, FastEmbed, index persistence
-- PII: the compiled `omna_core` wheel (unified L1–L6 Rust engine — no
-  Presidio, no spaCy; removed 2026-06-13). `omna/pii.py` routes to it.
+- PII: the compiled `omna_core` wheel (unified L1–L6 Rust engine — no heavy
+  Python ML deps). `omna/pii.py` routes to it.
 - Rust: cosine similarity kernel only (src/similarity.rs)
 - Build tool: maturin
 - Package manager: uv

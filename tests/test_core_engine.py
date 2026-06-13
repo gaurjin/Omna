@@ -40,11 +40,8 @@ def test_core_redacts_secrets_irreversibly():
 
 
 def test_core_is_the_only_engine():
-    """Presidio + spaCy were removed 2026-06-13 — the unified Rust engine is
-    the sole masking path (no `engine=` parameter, no legacy fallback). The
-    engine ported Presidio's useful rules into L1 and replaced its spaCy NER
-    with the L3 model, so the dependency is gone with no loss of capability.
-    """
+    """The unified Rust engine is the sole masking path (no `engine=` parameter,
+    no legacy fallback, no Python ML detection dependency)."""
     import inspect
 
     from omna.pii import mask_pii as mp

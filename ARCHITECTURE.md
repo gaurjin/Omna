@@ -22,16 +22,12 @@ df.omna.ask("question")          # natural language query via LLM
   - chunk_size default: 2000 (was 5000)
   - gc.collect() called after every chunk to release memory immediately
   - CoreML warmup on first model load (~30s one-time); prints "Ready." when done
-- Presidio — PII detection, Microsoft open source
-  - _REAL_PII_TYPES: entity allow-list (excludes LOCATION, NRP, DATE_TIME — which
-    cause false positives on ID-like columns such as ProductId)
-  - _MIN_SCORE = 0.35, _HIT_RATE_THRESHOLD = 0.10
-  - _SPACY_UNUSED_PIPES: tagger, parser, attribute_ruler, lemmatizer, tok2vec
-    disabled at worker startup for ~2x throughput; NER accuracy is unchanged
-    (the ner component in en_core_web_lg has its own internal representations)
-  - mask_pii(fast=True): regex-only mode (~10s per 50k rows) — catches email,
-    phone, SSN, credit card, URL; does NOT catch person names in prose
-  - mask_pii(fast=False): full Presidio + spaCy NER-only (~91s per 50k rows)
+- PII detection — the `omna_core` engine (compiled Rust wheel; no Python ML deps)
+  - unified L1–L6 pipeline: regex/validators + 220+ secret rules + optional L3
+    AI model + fusion + policy + audit
+  - `_HIT_RATE_THRESHOLD = 0.10`; column name used as a structure prior
+  - `mask_pii(model=True)` enables L3 (the on-device model) for contextual PII
+    like bare prose names
   - Dedup + single ProcessPoolExecutor + simultaneous column submission
 - Rust src/similarity.rs — cosine similarity kernel, rayon parallel
 - maturin — builds Rust-Python wheels
@@ -39,13 +35,17 @@ df.omna.ask("question")          # natural language query via LLM
 
 ---
 
-## Detection engines (2026-06-10)
+## Detection engine
 
-`omna/pii.py` carries TWO detection paths:
-- **presidio (default):** Presidio AnalyzerEngine + spaCy `en_core_web_lg`, 17-entity allowlist, irreversible `<REDACTED>`. Measured Gretel core-PII recall 0.692 (benchmarks.json).
-- **core (opt-in, `mask_pii(engine="core")`):** the unified L1–L6 Rust engine from omna-workspace via the `omna_core` pyo3 wheel (`bindings/omna-core-py`, not yet on PyPI). Reversible Shield tokens; secrets always irreversibly redacted. Measured Gretel core-PII recall 0.524 (gap = bare person names — the engine's L3 model layer, not yet enabled anywhere). **The default flips only when the measured recall ≥ 0.95** — gate + numbers recorded in benchmarks.json `core_engine_2026_06_10`.
+`omna/pii.py` routes entirely to the unified L1–L6 Rust engine via the
+`omna_core` pyo3 wheel (`bindings/omna-core-py` in omna-workspace — the same
+kernel the Mac app and browser extension ship). Reversible Shield tokens;
+secrets always irreversibly redacted; checksum-validated IDs; 220+ secret rules.
+`mask_pii(model=True)` adds the on-device L3 model for contextual PII. There is
+no Python ML detection path.
 
-`omna/ask.py` masks the sampled rows before the Anthropic call (omna_core when installed, else the fast regex path); `mask_rows=False` opts out.
+`omna/ask.py` masks the sampled rows with the same engine before the Anthropic
+call; `mask_rows=False` opts out.
 
 ## Two-repo structure
 

@@ -1,13 +1,11 @@
 """
 omna/pii.py — PII detection and masking, powered by the omna-core engine.
 
-As of 2026-06-13 this module routes ENTIRELY to the unified L1–L6 Rust engine
-(`omna_core` wheel — the same kernel the Omna Mac app and browser extension
-ship). Microsoft Presidio + spaCy were removed: the Rust engine beats the old
-Presidio path on core-PII recall, adds 220+ secret rules and checksum-validated
-IDs, needs no Python ML dependencies, and produces reversible Shield tokens
-(`[PERSON_1]`, `[EMAIL_1]`, …) — except secrets/credentials, which are ALWAYS
-irreversibly `[REDACTED:<KIND>]`.
+This module routes ENTIRELY to the unified L1–L6 Rust engine (`omna_core`
+wheel — the same kernel the Omna Mac app and browser extension ship): high
+core-PII recall, 220+ secret rules, checksum-validated IDs, no heavy Python ML
+dependencies, and reversible Shield tokens (`[PERSON_1]`, `[EMAIL_1]`, …) —
+except secrets/credentials, which are ALWAYS irreversibly `[REDACTED:<KIND>]`.
 
 The engine ships as a compiled wheel (`omna_core`). If it is not installed,
 every function here raises a friendly ImportError naming it.
@@ -104,7 +102,7 @@ def detect_pii_columns(df: pl.DataFrame, sample_size: int = 1000, model: bool = 
     sampled rows contain at least one entity. The column name rides along as a
     structure prior (so a "name" column is recognised). The engine is precise
     (no over-firing), so no entity-type allow-list or repeated-value guard is
-    needed — both were heuristics for Presidio's noisy NER.
+    needed — both were heuristics for the old noisy-NER detection path.
 
     Returns a dict mapping column name → sorted list of PII entity types found.
     """

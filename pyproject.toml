@@ -33,7 +33,7 @@ classifiers = [
 # Core runtime dependency — everything else is optional.
 # Heavy deps (fastembed, anthropic) are lazy-loaded inside their respective
 # methods and declared in [project.optional-dependencies] below. PII masking
-# is powered by the compiled `omna_core` wheel (no Presidio, no spaCy).
+# is powered by the compiled `omna_core` wheel (no heavy Python ML deps).
 dependencies = [
     "polars>=1.0",
 ]
@@ -56,9 +56,9 @@ embed = [
 ]
 
 # df.omna.mask_pii() and df.omna.pii_report() are powered by the compiled
-# `omna_core` wheel (the unified L1–L6 Rust engine — no Presidio, no spaCy).
-# The wheel is built from omna-workspace and installed separately; there are
-# no Python PII dependencies, so this extra is intentionally empty (kept so
+# `omna_core` wheel (the unified L1–L6 Rust engine). The wheel is built from
+# omna-workspace and installed separately; there are no Python PII
+# dependencies, so this extra is intentionally empty (kept so
 # `pip install omna[pii]` / `omna[all]` stay valid).
 pii = []
 
