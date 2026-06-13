@@ -13,9 +13,11 @@ unchanged and backward-compatible.
 ### Changed
 
 - **PII detection engine rebuilt as Omna's own six-layer pipeline.** The
-  previous masking path wrapped Microsoft Presidio + spaCy; it is now a
-  self-contained Rust engine — no Presidio, no spaCy. The **same engine** runs
-  in the Python library, the Omna Mac
+  default masking path no longer wraps Microsoft Presidio + spaCy; it is a
+  self-contained Rust engine (`engine="core"`, the default) that uses neither.
+  The legacy Presidio + spaCy path stays available as `engine="presidio"` and
+  will be removed once the Rust wheel is published to PyPI. The **same Rust
+  engine** runs in the Python library, the Omna Mac
   app, and the browser extension — output is byte-for-byte identical across all
   three (verified by a parity gate on every change).
   - **Core-PII recall** (name / email / SSN / phone / card) is **0.77**,
