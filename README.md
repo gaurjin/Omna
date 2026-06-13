@@ -78,6 +78,38 @@ Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,0
 
 ---
 
+## Enterprise-grade PII masking
+
+Most "PII for DataFrames" tools are a regex or a Presidio wrapper. Omna's
+masking is a **six-layer detection engine** (pure Rust, fully on-device) — the
+same engine that powers the Omna Mac app and browser extension:
+
+- **L1 — patterns + checksum validators:** emails, SSNs, cards (Luhn), IBANs, and 30+ international IDs *verified*, not just pattern-matched
+- **L2 — secrets:** 220+ rules (AWS keys, GitHub tokens, JWTs, private keys) with entropy checks
+- **L3 — on-device AI model** (`mask_pii(model=True)`): catches contextual PII no regex can — bare names, addresses, medical context
+- **L4–L6:** entity resolution, reversible `[PERSON_1]` tokens (secrets always irreversibly redacted), and a full audit trail
+
+No cloud, no API key, no data leaves your machine.
+
+**Same Gretel benchmark, same scoring — only the engine changed:**
+
+| Gretel benchmark | Before (Presidio) | After (Omna engine) |
+|---|---|---|
+| Core-PII recall | 0.69 | **0.84** |
+| All-types recall | 0.35 | **0.79** |
+| All-types F1 | 0.50 | **0.82** |
+| Types · secret rules · validated IDs | ~17 · 0 · none | **30+ · 220+ · 30+** |
+
+```python
+df.omna.pii_report()          # audit — every PII column, with confidence
+df.omna.mask_pii()            # redact (L1+L2) — instant, full audit log
+df.omna.mask_pii(model=True)  # full L1–L6, model-grade
+```
+
+Full methodology + numbers: **[docs/benchmark.md](docs/benchmark.md)**.
+
+---
+
 ## Install
 
 ```bash
@@ -387,23 +419,12 @@ Star the repo to follow progress.
 
 ---
 
-## What's new — masking upgraded
+## What's new
 
 The PII engine was rebuilt from a Presidio + spaCy wrapper into Omna's own
-**six-layer Rust engine** (no Python ML dependencies) — the same engine now runs
-in the Python library, the Mac app, and the browser extension, with an opt-in
-on-device AI layer (`mask_pii(model=True)`) for contextual PII like bare names.
-
-Same Gretel benchmark, same scoring — only the engine changed:
-
-| Gretel benchmark | Before (Presidio) | After (unified engine) |
-|---|---|---|
-| Core-PII recall | 0.69 | **0.84** |
-| All-types recall | 0.35 | **0.79** |
-| All-types F1 | 0.50 | **0.82** |
-| Types · secret rules · validated IDs | ~17 · 0 · none | **30+ · 220+ · 30+** |
-
-Full table + methodology: **[docs/benchmark.md](docs/benchmark.md)** · changelog: **[CHANGELOG.md](CHANGELOG.md)**.
+six-layer Rust engine (recall up ~2×, see [Enterprise-grade PII masking](#enterprise-grade-pii-masking)),
+and the embedding model was upgraded to nomic-embed-text-v1.5. Full history in
+**[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
