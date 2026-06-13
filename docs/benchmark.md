@@ -7,6 +7,32 @@ layers and shows measured numbers on public + synthetic benchmarks. Raw figures
 are in [`benchmarks.json`](../benchmarks.json); everything here is reproducible
 from the engine's benchmark suite.
 
+## Why we upgraded — before vs after
+
+Same Gretel benchmark, 1,000 rows, seed 42, identical char-overlap scoring.
+**Before** = the original Presidio-based engine (recorded April 2026; Presidio
+is now removed so it can't be re-run). **After** = the current unified engine,
+re-measured through the library today.
+
+| Gretel benchmark | Before (Presidio) | After (unified engine + model) |
+|---|---|---|
+| **Core-PII recall** (name/email/phone/SSN/card) | 0.692 | **0.840** |
+| All-types recall | 0.353 | **0.791** |
+| All-types precision | 0.871 | 0.840 |
+| All-types F1 | 0.503 | **0.815** |
+| PII entity types detected | ~17 | **30+** |
+| Secret-detection rules | 0 | **220+** |
+| Checksum-validated international IDs | none | **30+ schemes** |
+| Contextual AI model (catches bare prose names) | no | **yes (L3)** |
+| Token policy | irreversible `<REDACTED>` only | **reversible PII tokens; secrets always irreversible** |
+| Python ML dependencies | Presidio + spaCy | **none** |
+| Runs in | Python only | **Mac app + browser extension + Python** |
+
+**The headline:** recall jumps (all-types 0.35 → 0.79, ~2.2×; core-PII 0.69 →
+0.84) at roughly the same precision, **plus** a large capability leap — secrets,
+checksum validation, an on-device model, reversible tokens, and the same engine
+across all three products, with no Python ML dependencies.
+
 ## The six layers
 
 1. **L1 — patterns + validators.** Emails, phones, SSNs, credit cards

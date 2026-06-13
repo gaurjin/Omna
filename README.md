@@ -387,13 +387,23 @@ Star the repo to follow progress.
 
 ---
 
-## What's new
+## What's new — masking upgraded
 
-The PII engine was rebuilt as Omna's own six-layer Rust pipeline (no heavy
-Python ML dependencies) — the same engine now runs in the Python library, the Mac app, and the
-browser extension, with an opt-in on-device AI layer (`mask_pii(model=True)`)
-for contextual PII like bare names. Full details and benchmark numbers in
-**[CHANGELOG.md](CHANGELOG.md)**.
+The PII engine was rebuilt from a Presidio + spaCy wrapper into Omna's own
+**six-layer Rust engine** (no Python ML dependencies) — the same engine now runs
+in the Python library, the Mac app, and the browser extension, with an opt-in
+on-device AI layer (`mask_pii(model=True)`) for contextual PII like bare names.
+
+Same Gretel benchmark, same scoring — only the engine changed:
+
+| Gretel benchmark | Before (Presidio) | After (unified engine) |
+|---|---|---|
+| Core-PII recall | 0.69 | **0.84** |
+| All-types recall | 0.35 | **0.79** |
+| All-types F1 | 0.50 | **0.82** |
+| Types · secret rules · validated IDs | ~17 · 0 · none | **30+ · 220+ · 30+** |
+
+Full table + methodology: **[docs/benchmark.md](docs/benchmark.md)** · changelog: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
