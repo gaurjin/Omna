@@ -9,7 +9,7 @@ and omna.understand(df).
 
 ## Tech stack
 - Python: Polars namespace, FastEmbed, index persistence
-- PII: the compiled `omna_core` wheel (unified L1–L6 Rust engine — no heavy
+- PII: the compiled `omna_pii_mask` wheel (unified L1–L6 Rust engine — no heavy
   Python ML deps). `omna/pii.py` routes to it.
 - Rust: cosine similarity kernel only (src/similarity.rs)
 - Build tool: maturin
@@ -23,7 +23,7 @@ omna/
 ├── omna/frame.py          # All df.omna.* public methods
 ├── omna/embedder.py       # FastEmbed wrapper
 ├── omna/index.py          # Save/load embeddings (Parquet)
-├── omna/pii.py            # PII detection + masking via the omna_core engine
+├── omna/pii.py            # PII detection + masking via the omna_pii_mask engine
 ├── omna/understand.py     # Schema inference
 └── omna/ask.py            # LLM query layer
 

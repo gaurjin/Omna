@@ -22,7 +22,7 @@ df.omna.ask("question")          # natural language query via LLM
   - chunk_size default: 2000 (was 5000)
   - gc.collect() called after every chunk to release memory immediately
   - CoreML warmup on first model load (~30s one-time); prints "Ready." when done
-- PII detection — the `omna_core` engine (compiled Rust wheel; no Python ML deps)
+- PII detection — the `omna_pii_mask` engine (compiled Rust wheel; no Python ML deps)
   - unified L1–L6 pipeline: regex/validators + 220+ secret rules + optional L3
     AI model + fusion + policy + audit
   - `_HIT_RATE_THRESHOLD = 0.10`; column name used as a structure prior
@@ -38,7 +38,7 @@ df.omna.ask("question")          # natural language query via LLM
 ## Detection engine
 
 `omna/pii.py` routes entirely to the unified L1–L6 Rust engine via the
-`omna_core` pyo3 wheel (`bindings/omna-core-py` in omna-workspace — the same
+`omna_pii_mask` pyo3 wheel (`bindings/omna-core-py` in omna-workspace — the same
 kernel the Mac app and browser extension ship). Reversible Shield tokens;
 secrets always irreversibly redacted; checksum-validated IDs; 220+ secret rules.
 `mask_pii(model=True)` adds the on-device L3 model for contextual PII. There is

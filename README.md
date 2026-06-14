@@ -116,7 +116,7 @@ Full methodology + numbers: **[docs/benchmark.md](docs/benchmark.md)**.
 pip install "omna[all]"
 ```
 
-Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_core` engine (no heavy Python ML dependencies). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_pii_mask` engine (no heavy Python ML dependencies). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 
@@ -279,7 +279,7 @@ clean = df.omna.mask_pii()
 clean = df.omna.mask_pii(model=True)
 # → adds L3, the on-device AI model, for contextual PII regex can't catch
 #   (bare prose names, addresses). Downloads the model (~809 MB) once.
-# Requires the omna-core wheel (built from omna-workspace); see CHANGELOG.md.
+# Requires the omna_pii_mask wheel (built from omna-workspace); see CHANGELOG.md.
 ```
 
 Detects: `PERSON` `EMAIL` `PHONE` `CREDIT_CARD` `US_SSN` `IP_ADDRESS` `IBAN` `MEDICAL_RECORD_NUMBER` `BANK_ACCOUNT`, 220+ secret types, and 30+ international IDs — checksum-validated where applicable.
