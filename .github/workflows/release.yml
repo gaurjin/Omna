@@ -111,12 +111,19 @@ jobs:
       name: pypi
       url: https://pypi.org/p/omna
     steps:
+      - uses: actions/checkout@v4   # for scripts/strip_sbom.py
+
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
           pattern: wheels-*       # matches every wheels-* artifact
           merge-multiple: true    # flatten into a single dist/ directory
           path: dist
+
+      - name: Strip SBOMs before publishing
+        # Binary-only distribution: don't ship the CycloneDX dependency manifest
+        # (it lists internal crate names + every dependency). stdlib-only script.
+        run: python3 scripts/strip_sbom.py "dist/*.whl"
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

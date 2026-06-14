@@ -44,6 +44,7 @@ cd ~/Developer/Omna
 maturin build --release --strip --out dist-test     # omna  -> omna-0.2.0-*.whl
 (cd ~/Developer/omna-workspace/bindings/omna-core-py && \
    maturin build --release --strip --out ~/Developer/Omna/dist-test)  # engine -> omna_pii_mask-0.2.2-cp39-abi3-*.whl
+.venv/bin/python scripts/strip_sbom.py "dist-test/*.whl"   # drop the CycloneDX SBOM (binary-only: don't ship the dep manifest)
 .venv/bin/twine check dist-test/*.whl               # both PASSED
 # end-to-end in a fresh venv (bare import, hybrid search, mask model=False/True):
 cd /tmp && /tmp/omna-fresh/bin/python ~/Developer/Omna/scripts/clean_venv_smoke.py
@@ -84,11 +85,17 @@ back to… nothing, since there's no sdist). Prefer Path A.
 
 ```bash
 cd ~/Developer/Omna
+.venv/bin/python scripts/strip_sbom.py "dist-test/*.whl"   # IMPORTANT: strip the SBOM first
 # 1) engine FIRST
 .venv/bin/twine upload dist-test/omna_pii_mask-0.2.2-*.whl
 # 2) then the library
 .venv/bin/twine upload dist-test/omna-0.2.0-*.whl
 ```
+
+> **SBOM:** the wheels are binary-only and source-closed, so we do **not** ship
+> the maturin-generated CycloneDX SBOM (it lists internal crate names +
+> dependencies). The CI publish jobs strip it automatically (`scripts/strip_sbom.py`);
+> for a manual upload, run the strip line above first.
 
 `twine upload` needs a **real PyPI API token** (`__token__` / `pypi-...`), via
 `~/.pypirc` or `TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-...`. **This is the
