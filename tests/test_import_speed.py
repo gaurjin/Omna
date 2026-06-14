@@ -13,12 +13,12 @@ def _run(code: str, timeout: int = 10) -> subprocess.CompletedProcess:
 
 
 def test_heavy_deps_not_loaded_at_import():
-    """fastembed, anthropic, and the omna_core engine (+ onnxruntime) must not
+    """fastembed, anthropic, and the omna_pii_mask engine (+ onnxruntime) must not
     appear in sys.modules after a bare `import omna` — all are lazy-loaded."""
     result = _run(
         "import omna, sys; "
         "heavy = [m for m in sys.modules "
-        "         if any(h in m for h in ('fastembed','anthropic','omna_core','onnxruntime'))];"
+        "         if any(h in m for h in ('fastembed','anthropic','omna_pii_mask','onnxruntime'))];"
         "print(','.join(heavy))"
     )
     assert result.returncode == 0, f"import omna failed:\n{result.stderr}"

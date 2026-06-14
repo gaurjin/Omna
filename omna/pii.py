@@ -1,13 +1,13 @@
 """
 omna/pii.py — PII detection and masking, powered by the omna-core engine.
 
-This module routes ENTIRELY to the unified L1–L6 Rust engine (`omna_core`
+This module routes ENTIRELY to the unified L1–L6 Rust engine (`omna_pii_mask`
 wheel — the same kernel the Omna Mac app and browser extension ship): high
 core-PII recall, 220+ secret rules, checksum-validated IDs, no heavy Python ML
 dependencies, and reversible Shield tokens (`[PERSON_1]`, `[EMAIL_1]`, …) —
 except secrets/credentials, which are ALWAYS irreversibly `[REDACTED:<KIND>]`.
 
-The engine ships as a compiled wheel (`omna_core`). If it is not installed,
+The engine ships as a compiled wheel (`omna_pii_mask`). If it is not installed,
 every function here raises a friendly ImportError naming it.
 """
 
@@ -28,7 +28,7 @@ import polars as pl
 
 def _core_engine_available() -> bool:
     try:
-        import omna_core  # noqa: F401
+        import omna_pii_mask  # noqa: F401
         return True
     except ImportError:
         return False
@@ -37,9 +37,9 @@ def _core_engine_available() -> bool:
 def _require_core() -> None:
     if not _core_engine_available():
         raise ImportError(
-            "Omna's PII engine (the `omna_core` wheel) is not installed. "
+            "Omna's PII engine (the `omna_pii_mask` wheel) is not installed. "
             "It ships as a compiled wheel built from omna-workspace "
-            "(target/wheels/omna_core-*.whl)."
+            "(target/wheels/omna_pii_mask-*.whl)."
         )
 
 
@@ -52,9 +52,9 @@ def _detect_entities(text: str, column: Optional[str] = None, model: bool = Fals
     (the AI model) so contextual PII (bare prose names) is detected too."""
     if not text or not isinstance(text, str):
         return []
-    import omna_core
+    import omna_pii_mask
     probe = f"{column}: {text}" if column else text
-    return [s["entity"] for s in omna_core.detect(probe, model=model)]
+    return [s["entity"] for s in omna_pii_mask.detect(probe, model=model)]
 
 
 # Hit-rate threshold for flagging a column as containing PII.
@@ -74,19 +74,19 @@ def _mask_batch_core(
     masked output. If a span ever swallowed the label, the cell is re-masked
     without the prior (defensive). `model=True` enables L3 (the on-device AI
     model) for contextual PII like bare prose names."""
-    import omna_core
+    import omna_pii_mask
     out = []
     prefix = f"{column}: " if column else ""
     for t in texts:
         if not t or not isinstance(t, str):
             out.append(t)
             continue
-        masked = omna_core.mask(prefix + t, model=model)["masked"]
+        masked = omna_pii_mask.mask(prefix + t, model=model)["masked"]
         if prefix:
             if masked.startswith(prefix):
                 masked = masked[len(prefix):]
             else:
-                masked = omna_core.mask(t, model=model)["masked"]
+                masked = omna_pii_mask.mask(t, model=model)["masked"]
         out.append(masked)
     return out
 
@@ -140,7 +140,7 @@ def pii_report(df: pl.DataFrame) -> pl.DataFrame:
     contain at least one entity.
     """
     _require_core()
-    import omna_core
+    import omna_pii_mask
 
     rows = []
     string_cols = [c for c in df.columns if df[c].dtype == pl.Utf8]
@@ -155,7 +155,7 @@ def pii_report(df: pl.DataFrame) -> pl.DataFrame:
         conf_scores: list[float] = []
         hits = 0
         for text in sample:
-            spans = omna_core.detect(f"{col}: {text}")
+            spans = omna_pii_mask.detect(f"{col}: {text}")
             if spans:
                 hits += 1
                 entity_types.update(s["entity"] for s in spans)

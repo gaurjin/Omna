@@ -1,6 +1,6 @@
 """Tests for the opt-in omna-core unified engine path (workspace #94).
 
-The omna_core wheel is not on PyPI yet — every test here skips cleanly when
+The omna_pii_mask wheel is not on PyPI yet — every test here skips cleanly when
 it isn't installed, so CI without the wheel stays green.
 """
 
@@ -9,10 +9,10 @@ import pytest
 
 from omna.pii import _core_engine_available, mask_pii
 
-core = pytest.importorskip("omna_core") if _core_engine_available() else None
+core = pytest.importorskip("omna_pii_mask") if _core_engine_available() else None
 
 pytestmark = pytest.mark.skipif(
-    not _core_engine_available(), reason="omna_core wheel not installed"
+    not _core_engine_available(), reason="omna_pii_mask wheel not installed"
 )
 
 

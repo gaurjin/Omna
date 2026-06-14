@@ -19,14 +19,14 @@ def _mask_sample_text(text: str) -> str:
     unmasked rows to the API — privacy must never silently degrade here.
     """
     try:
-        import omna_core
+        import omna_pii_mask
     except ImportError:
         raise ImportError(
             "ask() masks the sampled rows before sending them to the API, "
-            "which needs the `omna_core` wheel. Install it, or pass "
+            "which needs the `omna_pii_mask` wheel. Install it, or pass "
             "mask_rows=False to send raw rows (synthetic/public data only)."
         ) from None
-    return omna_core.mask(text)["masked"]
+    return omna_pii_mask.mask(text)["masked"]
 
 
 def _serialize(df: pl.DataFrame, mask_rows: bool = True) -> str:
