@@ -84,7 +84,18 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 ## Next steps
 - [x] Phase C: Website live at omna.dev (2026-04-26)
 - [x] Phase D: PyPI publish — v0.1.0 live at pypi.org/project/omna (2026-04-26)
+- [x] Phase B: PyPI publish-readiness for v0.2.0 (2026-06-13) — see below
 - Phase E: Announce — X/Twitter post, Hacker News, Python communities
+
+## 2026-06-13 — Phase B: PyPI publish-readiness (v0.2.0) — DONE except the upload
+- [x] Bumped to **0.2.0** (0.1.0 is already on PyPI; re-upload fails). `__version__` + pyproject kept in lockstep, guarded by tests/test_packaging.py (which also queries live PyPI).
+- [x] **Fixed a real bare-install bug**: `numpy` + `rich` are imported at `import omna` time but were undeclared core deps → `pip install omna` crashed on import. Now core deps = `polars, numpy, rich`. Guard test added. (Caught by the clean-venv smoke; existing import-speed test missed it.)
+- [x] `[pii]` extra now depends on `omna-pii-mask>=0.2,<0.3` (was empty). pii.py error names `pip install "omna[pii]"`.
+- [x] **omna-pii-mask engine prepared for PyPI**: dist version aligned to 0.2.2 (was 0.2.0/Cargo 0.2.2 skew), full metadata + README, self-contained abi3 wheel (no Requires-Dist, ORT statically linked). New `omna-workspace/.github/workflows/release-pypi.yml` (abi3 macOS+manylinux). 404 on PyPI = name free.
+- [x] Both wheels built + `twine check` PASSED. Clean-venv smoke (scripts/clean_venv_smoke.py): bare import (no heavy deps), hybrid search (exact code #1), mask model=False AND model=True (L3 bare-name redaction) all pass. **147 tests passing.**
+- [x] Runbook: docs/RELEASING-PYPI.md (engine-first publish order, manual + CI paths, ENGINE_PAT/PYPI_API_TOKEN secrets).
+- [ ] **THE UPLOAD (left to gaurav — irreversible)**: publish engine first, then omna. See docs/RELEASING-PYPI.md. TestPyPI dry-run skipped (no token in env).
+- Superseded the old "v0.1.1" plan: the PII-engine upgrade already shipped in-tree (6-layer Rust engine, L3 in-process); this releases it as 0.2.0.
 
 ## 2026-06-10 — install-story + accuracy fixes (ship as v0.1.1)
 - [x] README documents extras: `pip install "omna[all]"` (bare install was crashing the quick start — fastembed/presidio are optional extras the README never mentioned)
@@ -92,7 +103,7 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 - [x] faker moved from runtime dependencies to the dev extra (only used by scripts/generate_demo_data.py)
 - [x] README accuracy: Polars 0.20+ → 1.0+ (matches pyproject); "23 lines" → "under 70 lines"; PII blurb "all gone" → "redacted" + open benchmark link (own Gretel benchmark: core-PII recall 0.692 — see benchmarks.json)
 - [x] First Rust kernel unit suite (7 tests in src/similarity.rs `#[cfg(test)]`), synced to Omna-engine per the sync rule
-- [ ] Publish v0.1.1 to PyPI (bundle with the PII-engine upgrade: swap to OpenAI privacy-filter ONNX model, hybrid with regex fast path; acceptance gate = Gretel harness core-PII recall ≥ 0.95)
+- [x] ~~Publish v0.1.1 to PyPI~~ → superseded by **v0.2.0** (the PII-engine upgrade — OpenAI privacy-filter ONNX as L3, in-process — has shipped in-tree; released as 0.2.0). See the 2026-06-13 Phase B section above.
 
 ## Demo dataset
 - data/gretel_pii.csv — Gretel PII Benchmark, 50,000 synthetic documents

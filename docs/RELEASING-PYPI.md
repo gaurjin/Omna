@@ -70,7 +70,12 @@ in each repo's `pypi` environment.
    (`.github/workflows/release.yml`: fetches the private Rust kernel via
    `ENGINE_PAT`, builds cp310/311/312 × macOS/Linux → publish.)
 
-Each repo needs its `PYPI_API_TOKEN` secret set (Settings → Environments → `pypi`).
+**Secrets each repo needs** (Settings → Secrets, and Environments → `pypi`):
+- both repos: `PYPI_API_TOKEN` (the upload token, in the `pypi` environment).
+- `omna` repo only: `ENGINE_PAT` — a PAT that can clone the private
+  `gaurjin/Omna-engine`. Without it, every `omna` build job fails at the
+  "Fetch Rust source" step. (The engine repo builds from its own in-tree
+  source, so it needs no PAT.)
 
 ## Path B — manual twine (macOS wheels only)
 

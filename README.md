@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/omna)](https://pypi.org/project/omna/)
 [![Python](https://img.shields.io/pypi/pyversions/omna)](https://pypi.org/project/omna/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-147%20passing-brightgreen)](tests/)
 
 **Hybrid search (semantic + keyword), enterprise-grade PII detection & masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
 
@@ -116,7 +116,7 @@ Full methodology + numbers: **[docs/benchmark.md](docs/benchmark.md)**.
 pip install "omna[all]"
 ```
 
-Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[ask]` (LLM queries) — bare `pip install omna` gives only the zero-dependency `understand_df()`. PII masking is powered by the compiled `omna_pii_mask` engine (no heavy Python ML dependencies). No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[pii]` (PII detection & masking), `omna[ask]` (LLM queries). A bare `pip install omna` (just `polars` + `numpy` + `rich`) gives schema understanding (`understand_df()`); the heavier features are opt-in. PII masking is powered by the compiled `omna-pii-mask` engine — a self-contained wheel with no heavy Python ML dependencies, pulled in automatically by `omna[pii]`/`omna[all]`. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 

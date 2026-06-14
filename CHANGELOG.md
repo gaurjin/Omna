@@ -4,11 +4,11 @@ All notable changes to Omna are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Omna aims for
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-06-13
 
-These changes ship with the `omna_pii_mask` detection-engine wheel (currently
-built from `omna-workspace`; not yet on PyPI). The pure-Python `omna` package
-API is backward-compatible.
+These changes ship with the `omna-pii-mask` detection-engine wheel, now prepared
+for PyPI alongside `omna` (`pip install "omna[pii]"` pulls it automatically). The
+`omna` public API is backward-compatible.
 
 Every change below is shown as **before → after** so you can see what's
 different at a glance.
@@ -85,6 +85,27 @@ different at a glance.
   | | Before | After |
   |---|---|---|
   | L3 model runs as | a separate helper process | **in-process**, on one shared ONNX Runtime |
+
+### Fixed
+
+- **Bare `pip install omna` no longer crashes on import.** `numpy` and `rich`
+  are imported at `import omna` time but were undeclared as core dependencies.
+
+  | | Before | After |
+  |---|---|---|
+  | `import omna` after bare `pip install omna` | `ModuleNotFoundError: numpy` | imports cleanly |
+  | Core dependencies | `polars` only | `polars`, `numpy`, `rich` |
+  | Heavy deps at bare import (fastembed/onnxruntime/engine) | none | none — still lazy |
+
+### Packaging
+
+- **`pip install "omna[pii]"` now installs the PII engine.** The `[pii]` extra
+  was empty, so masking failed on a clean install.
+
+  | | Before | After |
+  |---|---|---|
+  | `[pii]` extra | empty (`pii = []`) | depends on `omna-pii-mask>=0.2,<0.3` |
+  | Engine availability on PyPI | manual wheel from `omna-workspace` | published wheel, auto-resolved |
 
 ## [0.1.0]
 

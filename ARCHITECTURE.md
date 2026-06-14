@@ -44,6 +44,11 @@ secrets always irreversibly redacted; checksum-validated IDs; 220+ secret rules.
 `mask_pii(model=True)` adds the on-device L3 model for contextual PII. There is
 no Python ML detection path.
 
+The engine ships as its own PyPI distribution, `omna-pii-mask` (a self-contained
+abi3 wheel — ONNX Runtime statically linked, no `Requires-Dist`). `omna[pii]`
+depends on `omna-pii-mask>=0.2,<0.3`, so it must be published to PyPI before (or
+with) `omna`. See `docs/RELEASING-PYPI.md`.
+
 `omna/ask.py` masks the sampled rows with the same engine before the Anthropic
 call; `mask_rows=False` opts out.
 
@@ -191,14 +196,16 @@ Project path: ~/Developer/Omna
 ## Repositories
 - Public (Python layer): https://github.com/gaurjin/Omna
 - Private (Rust engine): https://github.com/gaurjin/Omna-engine
-- PyPI account: gaurjin (created, not yet published)
+- PyPI account: gaurjin — `omna` 0.1.0 published 2026-04-26; **0.2.0 prepared, awaiting upload**
 - First commit: 6d5234a
 
 ## Current status
-All 7 build days complete. 115 tests passing (2026-06-10: +2 ImportError-guard tests; kernel has its own 7-test Rust suite, tracked in Omna-engine). Rich formatted output across all methods.
+All 7 build days complete. **147 tests passing** (2026-06-13: +5 packaging-invariant tests; 2026-06-10: +2 ImportError-guard tests; kernel has its own 7-test Rust suite, tracked in Omna-engine). Rich formatted output across all methods.
 PII false-positive suppression working. XXXX-skip fix applied (mask_pii no longer
 double-redacts government pre-redacted tokens).
-Multi-platform wheel workflow: .github/workflows/release.yml
+Multi-platform wheel workflow: .github/workflows/release.yml (omna) and
+omna-workspace/.github/workflows/release-pypi.yml (the omna-pii-mask engine).
+**Phase B (PyPI publish-readiness for 0.2.0) complete — only the irreversible upload remains; see docs/RELEASING-PYPI.md.**
 
 Demo dataset: Gretel PII Benchmark (acquired by NVIDIA) — 50,000 synthetic documents
 (invoices, NDAs, insurance policies, shipping records) with real PII embedded.
