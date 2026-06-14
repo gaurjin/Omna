@@ -10,78 +10,81 @@ These changes ship with the `omna_pii_mask` detection-engine wheel (currently
 built from `omna-workspace`; not yet on PyPI). The pure-Python `omna` package
 API is backward-compatible.
 
+Every change below is shown as **before → after** so you can see what's
+different at a glance.
+
 ### Added
 
 - **Hybrid search — keyword matching now runs alongside meaning-based search.**
-  Before, `df.omna.search()` matched purely on *meaning* (embeddings), so a rare
-  exact term could rank low or be missed entirely. Now it matches *keywords* too
-  and merges both — so exact codes, IDs, names, and acronyms reliably surface.
+  `df.omna.search()` used to match purely on *meaning*, so a rare exact term
+  could rank low or be missed. Now it matches *keywords* too and merges both.
 
-  | Your search | Before (semantic only) | Now (hybrid, default) |
+  | Your search | Before (semantic only) | After (hybrid, default) |
   |---|---|---|
   | `"claim denied"` (by meaning) | finds related docs ✅ | finds related docs ✅ |
   | `"XJ9000"` (an exact part code) | often buried or missed ⚠️ | **ranked #1** ✅ |
+  | New dependency to install | — | none |
+  | Re-index existing data? | — | no — existing indexes just work |
 
-  On by default. Pass `hybrid=False` for the old pure-semantic behavior. **No new
-  dependencies, no re-indexing — existing indexes keep working unchanged.** (Under
-  the hood: BM25 keyword scoring fused with semantic ranking via Reciprocal Rank
-  Fusion; `_score` is still the cosine similarity.)
+  On by default; `hybrid=False` restores pure-semantic. (Under the hood: BM25
+  keyword scoring fused with semantic ranking via Reciprocal Rank Fusion;
+  `_score` is still the cosine similarity.)
 
-### Removed
+- **On-device AI for PII — `mask_pii(model=True)`.** A new optional AI layer (L3)
+  catches contextual PII that regex cannot — like a bare name with no title.
 
-- **Microsoft Presidio + spaCy are gone.** `presidio-analyzer`,
-  `presidio-anonymizer`, the spaCy model download, and the `engine="presidio"`
-  / `fast=` options were all removed. Their value was extracted first —
-  Presidio's detection rules were ported into the engine's L1 layer and its
-  spaCy NER was replaced by the L3 model — so there is no loss of capability,
-  just a heavy redundant dependency deleted. `mask_pii()` / `pii_report()` now
-  have no Python ML dependencies.
+  | Detecting… | Before (regex only) | After (`model=True`) |
+  |---|---|---|
+  | `SSN 123-45-6789`, emails, cards | caught ✅ | caught ✅ |
+  | `"Contact Jane Doe about it"` (bare name) | missed ⚠️ | **caught** ✅ |
+  | Setup | none | model auto-downloads once (~809 MB), or `download_model()` to pre-fetch / `OMNA_MODEL_DIR` to reuse the Mac app's |
+  | Default (`model=False`) | regex, instant, offline | regex, instant, offline — unchanged |
 
 ### Changed
 
-- **PII detection engine rebuilt as Omna's own six-layer pipeline.** Masking is
-  a self-contained Rust engine — no Presidio, no spaCy. The **same Rust
-  engine** runs in the Python library, the Omna Mac
-  app, and the browser extension — output is byte-for-byte identical across all
-  three (verified by a parity gate on every change).
-  - **Core-PII recall** (name / email / SSN / phone / card) is **0.84** with the
-    AI model — measured through the library on the Gretel PII benchmark (same
-    dataset/sample/scoring as the prior run), above the previous Presidio-based
-    path's **0.69**.
-  - **All-types precision 0.84 / recall 0.79 / F1 0.815** with the model on the
-    same benchmark. (See `docs/benchmark.md` — and note the core-PII *precision*
-    is artificially low because the engine detects far more types than that
-    5-type slice scores.)
-  - Detection is checksum-validated (Luhn, IBAN mod-97, Verhoeff, NHS, and 30+
-    international ID schemes) and includes **220+ secret-detection rules** (AWS
-    keys, GitHub tokens, JWTs, …) with entropy checks. Secrets are always
-    redacted irreversibly and never written to the reversible token map.
-- **Semantic search model upgraded** from `BAAI/bge-small-en-v1.5` (384-dim) to
-  `nomic-embed-text-v1.5` (768-dim) — the same embedding model the Omna Mac app
-  uses, so search behaves consistently across products. nomic is a larger,
-  higher-recall model and is especially better on queries that share no
-  keywords with the matching text. It is used with its trained
-  `search_document:` / `search_query:` task prefixes. **Action required:** any
-  saved `.npz` index built on the old model must be rebuilt — just re-run
-  `df.omna.embed(column)` (old 384-dim and new 768-dim vectors are not
-  comparable).
+- **PII engine — Presidio wrapper → Omna's own six-layer Rust engine.** Same
+  engine now runs in the Python library, the Mac app, and the browser extension
+  (byte-identical output, parity-gated).
 
-### Added
+  | | Before (v0.1.0) | After |
+  |---|---|---|
+  | Detection engine | Microsoft Presidio + spaCy | Omna 6-layer Rust engine |
+  | Core-PII recall (Gretel) | 0.69 | **0.84** (with `model=True`) |
+  | Secret detection | — | **220+ rules** (AWS, GitHub, JWT…) + entropy |
+  | ID validation | basic patterns | **checksum-validated** (Luhn, IBAN, Verhoeff, NHS, 30+ intl) |
+  | Heavy Python ML deps | presidio-analyzer/-anonymizer, spaCy model | **none** |
 
-- **`mask_pii(model=True)`** — opt-in on-device AI layer (L3) that catches
-  contextual PII regex cannot, such as a bare name with no title or label
-  ("Contact Jane Doe …"). The model (~809 MB) downloads once on first use and
-  is cached; `download_model()` pre-fetches it; set `OMNA_MODEL_DIR` to point at
-  an existing copy (e.g. the Mac app's). Without the model, L1+L2 run instantly
-  and fully offline.
-- **`download_model()`** — pre-download the L3 model so the first masking call
-  is instant (useful for CI / enterprise pre-staging).
+  (All-types with the model: precision 0.84 / recall 0.79 / F1 0.815 on the same
+  benchmark — see `docs/benchmark.md`. Secrets are always redacted irreversibly
+  and never written to the reversible token map.)
+
+- **Embedding model upgraded.**
+
+  | | Before | After |
+  |---|---|---|
+  | Model | `BAAI/bge-small-en-v1.5` (384-dim) | `nomic-embed-text-v1.5` (768-dim) |
+  | Queries with no shared keywords | weaker | better recall |
+  | Consistency with the Mac app | different model | **same model** |
+
+  **Action required:** rebuild any saved index — re-run `df.omna.embed(column)`
+  (old 384-dim and new 768-dim vectors are not comparable).
+
+### Removed
+
+- **Microsoft Presidio + spaCy (and the `engine="presidio"` / `fast=` options).**
+
+  | | Before | After |
+  |---|---|---|
+  | PII detection path | Presidio + spaCy NER (Python ML deps) | the unified Rust engine |
+  | Capability lost? | — | **none** — Presidio's rules were ported into L1, its NER replaced by the L3 model |
 
 ### Internal
 
-- The L3 model now links **in-process** into every product (Python wheel, Mac
-  app) — the previous standalone helper process was removed after the embedding
-  stack was upgraded to a single shared ONNX Runtime.
+- **L3 model now runs in-process** (Python wheel and Mac app).
+
+  | | Before | After |
+  |---|---|---|
+  | L3 model runs as | a separate helper process | **in-process**, on one shared ONNX Runtime |
 
 ## [0.1.0]
 

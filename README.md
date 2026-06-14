@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen)](tests/)
 
-**Semantic search, enterprise-grade PII detection & masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
+**Hybrid search (semantic + keyword), enterprise-grade PII detection & masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
 
 ---
 
@@ -66,7 +66,7 @@ df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
 
 ## Demo
 
-**The Sword** — semantic search, filter, and ask across 50,000 documents:
+**The Sword** — hybrid search (semantic + keyword), filter, and ask across 50,000 documents:
 
 ![Omna Sword Demo](assets/demo_sword.gif)
 
@@ -392,7 +392,7 @@ No. FastEmbed uses ONNX and runs on CPU. On Apple Silicon, it uses CoreML automa
 <details>
 <summary><b>Why not FAISS / ChromaDB / Pinecone?</b></summary>
 
-Those are vector databases. Omna is a Polars plugin. If your data already lives in a DataFrame, Omna adds semantic search with zero infrastructure — no separate process, no index server, no network hop. It's the difference between `df.omna.search(...)` and spinning up a separate service just to query your own data.
+Those are vector databases. Omna is a Polars plugin. If your data already lives in a DataFrame, Omna adds hybrid search (semantic + keyword) with zero infrastructure — no separate process, no index server, no network hop. It's the difference between `df.omna.search(...)` and spinning up a separate service just to query your own data.
 
 </details>
 
