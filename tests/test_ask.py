@@ -125,3 +125,19 @@ def test_frame_ask_raises_without_key(monkeypatch):
     df = pl.DataFrame({"x": [1]})
     with pytest.raises(EnvironmentError, match="ANTHROPIC_API_KEY"):
         df.omna.ask("hello?")
+
+
+def test_frame_ask_forwards_mask_rows():
+    """df.omna.ask() must expose mask_rows and forward it. The masking-engine
+    ImportError advises `mask_rows=False`; that advice is only actionable if the
+    frame method actually accepts and passes the flag through to query()."""
+    df = pl.DataFrame({"x": [1]})
+    captured = {}
+
+    def fake_query(frame, question, model=None, mask_rows=True):
+        captured["mask_rows"] = mask_rows
+        return "ok"
+
+    with patch.object(ask_mod, "query", fake_query):
+        df.omna.ask("q?", mask_rows=False)
+    assert captured["mask_rows"] is False, "df.omna.ask did not forward mask_rows"

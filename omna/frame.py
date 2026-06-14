@@ -502,18 +502,25 @@ class OmnaFrame:
         _print_pii_report(result)
         return result
 
-    def ask(self, question: str, model: str | None = None) -> str:
+    def ask(self, question: str, model: str | None = None, mask_rows: bool = True) -> str:
         """Answer a natural-language question about this DataFrame using Claude.
+
+        By default the sampled rows are PII-masked (via the omna-pii-mask engine)
+        before they are sent to the Anthropic API, so raw data never leaves the
+        process. Set ``mask_rows=False`` to send the raw sample instead — only
+        for synthetic or already-public data.
 
         Args:
             question: Any natural-language question about the data.
             model: Claude model ID. Defaults to claude-haiku-4-5-20251001.
+            mask_rows: Mask PII in the sampled rows before the API call (default
+                True). False sends raw rows — synthetic/public data only.
 
         Returns:
             Claude's answer as a string.
         """
         from omna import ask as ask_mod
         kwargs = {"model": model} if model else {}
-        answer = ask_mod.query(self._df, question, **kwargs)
+        answer = ask_mod.query(self._df, question, mask_rows=mask_rows, **kwargs)
         _print_ask(question, answer, model or ask_mod.DEFAULT_MODEL)
         return answer

@@ -73,8 +73,12 @@ pii = [
 
 # Required for df.omna.ask()
 # Also set:  export ANTHROPIC_API_KEY=sk-ant-...
+# ask() masks the sampled rows with the omna-pii-mask engine BEFORE they leave
+# the process (privacy default), so the engine is a hard dependency of [ask].
+# Pass mask_rows=False to skip masking (synthetic/public data only).
 ask = [
     "anthropic>=0.26",
+    "omna-pii-mask>=0.2,<0.3",
 ]
 
 # All optional features combined

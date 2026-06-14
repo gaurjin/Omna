@@ -97,6 +97,16 @@ different at a glance.
   | Core dependencies | `polars` only | `polars`, `numpy`, `rich` |
   | Heavy deps at bare import (fastembed/onnxruntime/engine) | none | none — still lazy |
 
+- **`ask()` no longer dead-ends on a partial install.** `ask()` masks the
+  sampled rows before sending them to the API by default, which needs the
+  engine — but `omna[ask]` didn't install it, and `df.omna.ask()` didn't expose
+  the documented `mask_rows=False` escape hatch.
+
+  | | Before | After |
+  |---|---|---|
+  | `omna[ask]` install | `anthropic` only → default `ask()` errored, no engine | also pulls `omna-pii-mask` → masks out of the box |
+  | `df.omna.ask(...)` | `(question, model)` — no way to skip masking | adds `mask_rows=False` (synthetic/public data only) |
+
 ### Packaging
 
 - **`pip install "omna[pii]"` now installs the PII engine.** The `[pii]` extra
@@ -105,6 +115,7 @@ different at a glance.
   | | Before | After |
   |---|---|---|
   | `[pii]` extra | empty (`pii = []`) | depends on `omna-pii-mask>=0.2,<0.3` |
+  | `[ask]` extra | `anthropic` only | also `omna-pii-mask` (ask masks by default) |
   | Engine availability on PyPI | manual wheel from `omna-workspace` | published wheel, auto-resolved |
 
 ## [0.1.0]

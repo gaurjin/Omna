@@ -88,3 +88,13 @@ def test_pii_extra_depends_on_engine_wheel():
     extras = _pyproject()["project"]["optional-dependencies"]
     assert any("omna-pii-mask" in d for d in extras["pii"]), \
         "[pii] extra must depend on omna-pii-mask"
+
+
+def test_ask_extra_pulls_engine_for_default_masking():
+    """ask() masks rows before sending to the API by default — that needs the
+    engine. So `omna[ask]` must pull it, or the safe default fails out of the
+    box and the only escape (mask_rows=False) sends raw data to the LLM.
+    """
+    extras = _pyproject()["project"]["optional-dependencies"]
+    assert any("omna-pii-mask" in d for d in extras["ask"]), \
+        "[ask] extra must depend on omna-pii-mask (ask() masks rows by default)"
