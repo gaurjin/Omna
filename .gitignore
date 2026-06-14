@@ -46,3 +46,6 @@ data/
 
 # user scratch file, accidentally swept into a 2026-06-10 commit
 /text
+
+# Local build scratch (wheels built for smoke-testing)
+dist-test/
