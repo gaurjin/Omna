@@ -116,7 +116,9 @@ Full methodology + numbers: **[docs/benchmark.md](docs/benchmark.md)**.
 pip install "omna[all]"
 ```
 
-Requires Python 3.10+. Extras: `omna[embed]` (search/filter), `omna[pii]` (PII detection & masking), `omna[ask]` (LLM queries). A bare `pip install omna` (just `polars` + `numpy` + `rich`) gives schema understanding (`understand_df()`); the heavier features are opt-in. PII masking is powered by the compiled `omna-pii-mask` engine — a self-contained wheel with no heavy Python ML dependencies, pulled in automatically by `omna[pii]`, `omna[ask]` (which masks rows before the API call), or `omna[all]`. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
+**Supported platforms:** Python 3.10–3.12 on **macOS or Linux**. Windows is not supported. The PII engine (`omna[pii]`, and `mask_pii(model=True)`) runs on **Apple Silicon macOS and Linux** — it is **not available on Intel Macs**, because its on-device model runtime (ONNX Runtime) ships no Intel-Mac build; Intel-Mac users can still use search, filter, and schema understanding.
+
+Extras: `omna[embed]` (search/filter), `omna[pii]` (PII detection & masking), `omna[ask]` (LLM queries). A bare `pip install omna` (just `polars` + `numpy` + `rich`) gives schema understanding (`understand_df()`); the heavier features are opt-in. PII masking is powered by the compiled `omna-pii-mask` engine — a self-contained wheel with no heavy Python ML dependencies, pulled in automatically by `omna[pii]`, `omna[ask]` (which masks rows before the API call), or `omna[all]`. No API key needed for search, filter, embed, pii_report, mask_pii, or understand. Only `ask()` requires `ANTHROPIC_API_KEY`.
 
 ---
 
