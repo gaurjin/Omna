@@ -158,7 +158,7 @@ results.omna.ask("What personal data do these documents expose?")
 |---|---|
 | `omna.understand_df(df)` | Schema inference — labels, null rates, samples. No LLM. |
 | `df.omna.embed(column)` | Vectorize a text column once; reuse across sessions |
-| `df.omna.search(query, on, k)` | Top-k results by semantic meaning |
+| `df.omna.search(query, on, k)` | Top-k results by hybrid relevance (semantic + keyword) |
 | `df.omna.filter(query, on, threshold)` | Every row above a similarity threshold |
 | `df.omna.pii_report()` | Audit every string column for PII |
 | `df.omna.mask_pii()` | Redact PII, auto-save audit log |
@@ -211,12 +211,24 @@ Model: `nomic-ai/nomic-embed-text-v1.5` (768-dim, downloaded once on first use) 
 </details>
 
 <details>
-<summary><b>df.omna.search(query, on, k)</b> — semantic search</summary>
+<summary><b>df.omna.search(query, on, k)</b> — hybrid search (semantic + keyword)</summary>
 
 > Requires `df.omna.embed("column")` first.
 
 ```python
 results = df.omna.search("insurance claim denied", on="text", k=5)
+```
+
+Search is **hybrid by default**: semantic (embedding) similarity and BM25 keyword
+matching run together, fused with Reciprocal Rank Fusion. Semantics catch
+meaning; BM25 catches rare exact tokens the embeddings blur — part codes, IDs,
+surnames, acronyms. Results are ordered by fused relevance. The BM25 index is
+built from the saved column on first use (no re-embedding, no change to your
+index file). Pass `hybrid=False` for pure-semantic search.
+
+```python
+results = df.omna.search("XJ9000", on="parts", k=5)              # exact code → BM25 nails it
+results = df.omna.search("claim denied", on="text", hybrid=False) # meaning only
 ```
 
 ```

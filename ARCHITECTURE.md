@@ -8,7 +8,7 @@ Adds semantic search, PII masking, and schema understanding.
 ```
 omna.understand(df)              # schema inference, column labelling
 df.omna.embed("column")          # vectorize a column, save to disk
-df.omna.search("query", on, k)   # semantic search — Rust kernel inside
+df.omna.search("query", on, k)   # hybrid search (semantic + BM25/RRF) — Rust cosine kernel inside
 df.omna.filter("concept", on)    # filter by concept, not exact string
 df.omna.mask_pii()               # auto-detect and redact PII, audit log
 df.omna.pii_report()             # show PII found without masking yet
@@ -47,6 +47,26 @@ no Python ML detection path.
 `omna/ask.py` masks the sampled rows with the same engine before the Anthropic
 call; `mask_rows=False` opts out.
 
+## Hybrid search
+
+`df.omna.search()` is hybrid by default (`hybrid=True`): it fuses two rankings.
+
+1. **Semantic** — cosine similarity over the saved embeddings via the Rust
+   `top_k_flat_np` kernel (the full row ranking).
+2. **Lexical** — BM25 (Okapi) over the saved column text, in `omna/hybrid.py`
+   (pure Python + numpy: an inverted index built once and cached, keyed by
+   `"{index_path}::{column}"` + the loaded DataFrame's identity so a re-embed
+   rebuilds it).
+
+The two rankings are combined with **Reciprocal Rank Fusion** (`rrf_fuse`,
+k=60) and the top-k by fused score is returned. `_score` remains the cosine
+similarity (so it is interpretable but, in hybrid mode, not strictly
+descending). BM25/RRF are standard public IR algorithms — no relation to the
+private cosine kernel in `Omna-engine`. The on-disk index format is unchanged;
+existing indexes work without re-embedding. `hybrid=False` is pure semantic.
+`filter()` stays semantic-only (a similarity threshold has no principled
+fused-score cutoff).
+
 ## Two-repo structure
 
 Omna is deliberately split across two directories and two GitHub repos.
@@ -57,7 +77,7 @@ Understanding why is essential before touching any Rust code.
 This is the **working repo** — where all development happens.
 
 **What it contains:**
-- `omna/` — the full Python package (frame.py, embedder.py, index.py, pii.py, understand.py, ask.py, __init__.py)
+- `omna/` — the full Python package (frame.py, embedder.py, index.py, hybrid.py, pii.py, understand.py, ask.py, __init__.py)
 - `src/` — Rust source (lib.rs, similarity.rs) — **excluded from git via .gitignore**
 - `Cargo.toml` / `Cargo.lock` — Rust build config — **excluded from git**
 - `tests/` — pytest suite

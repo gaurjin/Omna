@@ -60,8 +60,11 @@ def test_search_has_score_column(indexed_df):
 
 
 def test_search_scores_descending(indexed_df):
+    # The cosine-descending invariant is the *pure-semantic* contract. In hybrid
+    # mode results are ordered by fused relevance (a lexical match can rank above
+    # a higher-cosine row), so the invariant is asserted with hybrid=False.
     df, idx = indexed_df
-    results = df.omna.search("cat", on="text", k=5, index_path=idx)
+    results = df.omna.search("cat", on="text", k=5, index_path=idx, hybrid=False)
     scores = results["_score"].to_list()
     assert scores == sorted(scores, reverse=True)
 

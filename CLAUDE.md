@@ -23,6 +23,7 @@ omna/
 ├── omna/frame.py          # All df.omna.* public methods
 ├── omna/embedder.py       # FastEmbed wrapper
 ├── omna/index.py          # Save/load embeddings (Parquet)
+├── omna/hybrid.py         # BM25 + RRF for hybrid search (pure Python/numpy)
 ├── omna/pii.py            # PII detection + masking via the omna_pii_mask engine
 ├── omna/understand.py     # Schema inference
 └── omna/ask.py            # LLM query layer

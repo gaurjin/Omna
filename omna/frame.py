@@ -358,37 +358,74 @@ class OmnaFrame:
         return self._df
 
     def search(self, query: str, on: str, k: int = 10,
-               index_path: str | Path | None = None) -> pl.DataFrame:
-        """Return the *k* rows most semantically similar to *query*.
+               index_path: str | Path | None = None,
+               hybrid: bool = True) -> pl.DataFrame:
+        """Return the *k* most relevant rows for *query*.
 
-        Requires df.omna.embed(on) to have been called first.
+        By default this is **hybrid search**: semantic (embedding) similarity and
+        BM25 lexical matching are run together and their rankings fused with
+        Reciprocal Rank Fusion. Semantics catch meaning; BM25 catches rare exact
+        tokens the embeddings blur (part codes, IDs, surnames, acronyms). Set
+        ``hybrid=False`` for pure-semantic search.
+
+        Requires df.omna.embed(on) to have been called first. The BM25 index is
+        built from the saved column on first use and cached — no re-embedding and
+        no change to the on-disk index format.
 
         Args:
-            query: Natural-language search string.
+            query: Natural-language (or exact-term) search string.
             on: Column name that was previously embedded.
             k: Number of results (default 10).
             index_path: Override the default index location.
+            hybrid: Fuse BM25 + semantic ranking (default True). When True,
+                results are ordered by fused relevance, so the ``_score`` column
+                (the cosine similarity) is not necessarily descending — a strong
+                lexical match can rank above a higher-cosine row. With
+                hybrid=False, ``_score`` is descending.
 
         Returns:
-            DataFrame of the top k matching rows plus a '_score' column (0-1).
+            DataFrame of the top k matching rows plus a '_score' column (cosine
+            similarity, −1 to 1; typically 0–1 for related text), ordered by
+            relevance.
         """
         from omna import embedder
+        from omna import hybrid as hybrid_mod
+        k = max(int(k), 0)
         path = Path(index_path) if index_path else _default_index_path(on)
         if not path.exists():
             raise FileNotFoundError(
                 f"No index for column '{on}'. Run df.omna.embed('{on}') first."
             )
         df, embeddings = index.load(path)
-        query_vec = np.array(embedder.embed([query], kind="query")[0], dtype=np.float32)
-        dim = embeddings.shape[1]
-        flat_emb = np.ascontiguousarray(embeddings)
-        hits = top_k_flat_np(query_vec, flat_emb, dim, k)
-        if not hits:
+        if len(df) == 0 or k == 0:
             result = df.clear()
             _print_search(result, query, on, k)
             return result
-        result = df[list(h[0] for h in hits)].with_columns(
-            pl.Series("_score", [h[1] for h in hits], dtype=pl.Float32)
+        query_vec = np.array(embedder.embed([query], kind="query")[0], dtype=np.float32)
+        dim = embeddings.shape[1]
+        flat_emb = np.ascontiguousarray(embeddings)
+        # Rank every row semantically (idx -> cosine). top_k with k=len(df) gives
+        # the full ranking we fuse against; the cosine cost is the same either way.
+        sem_hits = top_k_flat_np(query_vec, flat_emb, dim, len(df))
+        sem_scores = {int(idx): float(score) for idx, score in sem_hits}
+
+        if hybrid and on in df.columns:
+            corpus = df[on].cast(pl.String).to_list()
+            bm = hybrid_mod.get_bm25(f"{path}::{on}", id(df), corpus)
+            bm_scores = bm.scores(query)
+            sem_ranking = [int(idx) for idx, _ in sem_hits]
+            # Only rows with a non-zero lexical score join the lexical ranking;
+            # rows nobody matched lexically just ride their semantic rank.
+            lex_ranking = [int(i) for i in np.argsort(-bm_scores) if bm_scores[i] > 0.0]
+            fused = hybrid_mod.rrf_fuse([sem_ranking, lex_ranking])
+            chosen = sorted(
+                fused, key=lambda i: (fused[i], sem_scores.get(i, 0.0)), reverse=True
+            )[:k]
+        else:
+            chosen = [int(idx) for idx, _ in sem_hits[:k]]
+
+        result = df[chosen].with_columns(
+            pl.Series("_score", [sem_scores[i] for i in chosen], dtype=pl.Float32)
         )
         _print_search(result, query, on, k)
         return result
