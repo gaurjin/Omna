@@ -66,6 +66,23 @@ def test_current_version_not_already_on_pypi():
     )
 
 
+def test_import_time_deps_are_declared_core():
+    """Every third-party package imported at bare `import omna` must be a core
+    dependency, or a bare `pip install omna` crashes on import.
+
+    These are the packages the `import omna` chain loads at module level
+    (__init__ → frame → index; __init__ → understand): polars, numpy (frame/
+    index), and rich (understand). fastembed/anthropic/onnxruntime/the engine
+    are lazy-loaded inside methods and intentionally NOT here.
+    """
+    core = _pyproject()["project"]["dependencies"]
+    for pkg in ("polars", "numpy", "rich"):
+        assert any(d.startswith(pkg) for d in core), (
+            f"{pkg} is imported at `import omna` time but is not a core "
+            f"dependency — bare `pip install omna` would crash. Core deps: {core}"
+        )
+
+
 def test_pii_extra_depends_on_engine_wheel():
     """pip install omna[pii] must pull the omna-pii-mask engine wheel."""
     extras = _pyproject()["project"]["optional-dependencies"]

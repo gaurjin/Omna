@@ -30,7 +30,7 @@ jobs:
         env:
           ENGINE_PAT: ${{ secrets.ENGINE_PAT }}
         run: |
-          git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
+          git clone --depth 1 "https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git" /tmp/engine
           cp -r /tmp/engine/src ./src
           cp /tmp/engine/Cargo.toml ./Cargo.toml
           cp /tmp/engine/Cargo.lock ./Cargo.lock
@@ -73,7 +73,7 @@ jobs:
         env:
           ENGINE_PAT: ${{ secrets.ENGINE_PAT }}
         run: |
-          git clone --depth 1 https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git /tmp/engine
+          git clone --depth 1 "https://x-access-token:${ENGINE_PAT}@github.com/gaurjin/Omna-engine.git" /tmp/engine
           cp -r /tmp/engine/src ./src
           cp /tmp/engine/Cargo.toml ./Cargo.toml
           cp /tmp/engine/Cargo.lock ./Cargo.lock

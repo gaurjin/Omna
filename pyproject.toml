@@ -38,6 +38,12 @@ classifiers = [
 # is powered by the compiled `omna_pii_mask` wheel (no heavy Python ML deps).
 dependencies = [
     "polars>=1.0",
+    # numpy: imported at `import omna` time — hybrid BM25/RRF (hybrid.py), index
+    # persistence (index.py), search/filter vector ops (frame.py).
+    "numpy>=1.26",
+    # rich: imported at `import omna` time by understand.py; powers the pretty
+    # console output for understand()/search()/pii_report()/mask_pii()/ask().
+    "rich>=13.0",
 ]
 
 [project.urls]
@@ -54,8 +60,8 @@ Changelog  = "https://github.com/gaurjin/omna/blob/main/CHANGELOG.md"
 # Required for df.omna.embed(), df.omna.search(), df.omna.filter()
 embed = [
     "fastembed>=0.8",
-    "numpy>=1.26",
     "onnxruntime>=1.18",
+    # numpy is a core dependency (see [project.dependencies]); not repeated here.
 ]
 
 # df.omna.mask_pii() and df.omna.pii_report() route to the compiled
