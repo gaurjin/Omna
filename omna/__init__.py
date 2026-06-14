@@ -1,7 +1,7 @@
 """Omna — semantic search, PII masking and schema understanding for Polars."""
 from __future__ import annotations
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 import polars as pl
 

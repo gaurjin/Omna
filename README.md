@@ -2,8 +2,8 @@
 
 [![PyPI](https://img.shields.io/pypi/v/omna)](https://pypi.org/project/omna/)
 [![Python](https://img.shields.io/pypi/pyversions/omna)](https://pypi.org/project/omna/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-147%20passing-brightgreen)](tests/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/gaurjin/omna/blob/main/LICENSE)
+[![Tests](https://img.shields.io/badge/tests-147%20passing-brightgreen)](https://github.com/gaurjin/omna/tree/main/tests)
 
 **Hybrid search (semantic + keyword), enterprise-grade PII detection & masking, and schema understanding — directly on your Polars DataFrames. No vector database. No API key. Data never leaves your machine.**
 
@@ -68,11 +68,11 @@ df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
 
 **The Sword** — hybrid search (semantic + keyword), filter, and ask across 50,000 documents:
 
-![Omna Sword Demo](assets/demo_sword.gif)
+![Omna Sword Demo](https://raw.githubusercontent.com/gaurjin/omna/main/assets/demo_sword.gif)
 
 **The Shield** — PII audit and redaction in one line:
 
-![Omna Shield Demo](assets/demo_shield.gif)
+![Omna Shield Demo](https://raw.githubusercontent.com/gaurjin/omna/main/assets/demo_shield.gif)
 
 Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,000 synthetic documents built to test data privacy tools.
 
@@ -106,7 +106,7 @@ df.omna.mask_pii()            # redact (L1+L2) — instant, full audit log
 df.omna.mask_pii(model=True)  # full L1–L6, model-grade
 ```
 
-Full methodology + numbers: **[docs/benchmark.md](docs/benchmark.md)**.
+Full methodology + numbers: **[docs/benchmark.md](https://github.com/gaurjin/omna/blob/main/docs/benchmark.md)**.
 
 ---
 
@@ -438,7 +438,7 @@ Star the repo to follow progress.
 The PII engine was rebuilt from a Presidio + spaCy wrapper into Omna's own
 six-layer Rust engine (recall up ~2×, see [Enterprise-grade PII masking](#enterprise-grade-pii-masking)),
 and the embedding model was upgraded to nomic-embed-text-v1.5. Full history in
-**[CHANGELOG.md](CHANGELOG.md)**.
+**[CHANGELOG.md](https://github.com/gaurjin/omna/blob/main/CHANGELOG.md)**.
 
 ---
 

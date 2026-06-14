@@ -4,6 +4,16 @@ All notable changes to Omna are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Omna aims for
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-06-14
+
+### Fixed
+
+- **README links now work on PyPI.** Relative links (`docs/benchmark.md`,
+  `CHANGELOG.md`, `LICENSE`, `tests/`) and the demo GIFs 404'd / didn't render on
+  the PyPI project page, because PyPI resolves relative paths against
+  `pypi.org/project/omna/`. All are now absolute GitHub URLs (raw URLs for the
+  GIFs). No code or API changes — packaging/docs only.
+
 ## [0.2.0] — 2026-06-13
 
 These changes ship with the `omna-pii-mask` detection-engine wheel, now prepared
