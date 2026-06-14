@@ -4,6 +4,15 @@ All notable changes to Omna are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Omna aims for
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] — 2026-06-14
+
+### Fixed
+
+- **Dataset link points to the actual dataset.** The "Gretel PII Benchmark" link
+  went to the Gretel homepage; it now points to the dataset itself —
+  [gretelai/gretel-pii-masking-en-v1](https://huggingface.co/datasets/gretelai/gretel-pii-masking-en-v1)
+  (the 50,000-document train split). Docs only — no code/API change.
+
 ## [0.2.1] — 2026-06-14
 
 ### Fixed

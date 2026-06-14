@@ -74,7 +74,7 @@ df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
 
 ![Omna Shield Demo](https://raw.githubusercontent.com/gaurjin/omna/main/assets/demo_shield.gif)
 
-Dataset: [Gretel PII Benchmark](https://gretel.ai) (acquired by NVIDIA) — 50,000 synthetic documents built to test data privacy tools.
+Dataset: [Gretel PII Masking Benchmark](https://huggingface.co/datasets/gretelai/gretel-pii-masking-en-v1) (Gretel AI, acquired by NVIDIA) — 50,000 synthetic documents (the train split) built to test data privacy tools.
 
 ---
 
