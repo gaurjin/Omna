@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "omna"
-version = "0.1.0"
+version = "0.2.0"
 description = "Semantic search, PII masking, and schema understanding for Polars DataFrames"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,6 +21,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -42,6 +44,7 @@ dependencies = [
 Homepage   = "https://github.com/gaurjin/omna"
 Repository = "https://github.com/gaurjin/omna"
 Issues     = "https://github.com/gaurjin/omna/issues"
+Changelog  = "https://github.com/gaurjin/omna/blob/main/CHANGELOG.md"
 
 # ── Optional dependency groups ────────────────────────────────────────────────
 # Install the full stack:  pip install omna[embed,pii,ask]
@@ -55,12 +58,12 @@ embed = [
     "onnxruntime>=1.18",
 ]
 
-# df.omna.mask_pii() and df.omna.pii_report() are powered by the compiled
-# `omna_pii_mask` wheel (the unified L1–L6 Rust engine). The wheel is built from
-# omna-workspace and installed separately; there are no Python PII
-# dependencies, so this extra is intentionally empty (kept so
-# `pip install omna[pii]` / `omna[all]` stay valid).
-pii = []
+# df.omna.mask_pii() and df.omna.pii_report() route to the compiled
+# `omna-pii-mask` wheel (the unified L1–L6 Rust engine: links ONNX Runtime,
+# runs the on-device L3 AI model in-process, no heavy Python ML deps).
+pii = [
+    "omna-pii-mask>=0.2,<0.3",
+]
 
 # Required for df.omna.ask()
 # Also set:  export ANTHROPIC_API_KEY=sk-ant-...
@@ -82,6 +85,12 @@ dev = [
     "faker>=40.15.0",
     "omna[all]",
 ]
+
+# ── Test configuration ────────────────────────────────────────────────────────
+# Scope collection to tests/ so a bare `pytest` doesn't pick up scripts/ helpers
+# (e.g. scripts/smoke_test.py errors at collection without its data files).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 # ── Maturin build configuration ───────────────────────────────────────────────
 [tool.maturin]

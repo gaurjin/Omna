@@ -20,5 +20,5 @@ def test_pii_missing_core_wheel_names_it(monkeypatch):
     monkeypatch.setitem(sys.modules, "omna_pii_mask", None)  # forces ImportError
     from omna import pii
 
-    with pytest.raises(ImportError, match=r"omna_pii_mask"):
+    with pytest.raises(ImportError, match=r"omna[-_]pii[-_]mask"):
         pii._require_core()

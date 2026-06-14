@@ -37,9 +37,9 @@ def _core_engine_available() -> bool:
 def _require_core() -> None:
     if not _core_engine_available():
         raise ImportError(
-            "Omna's PII engine (the `omna_pii_mask` wheel) is not installed. "
-            "It ships as a compiled wheel built from omna-workspace "
-            "(target/wheels/omna_pii_mask-*.whl)."
+            "Omna's PII engine is not installed. Install it with:  "
+            'pip install "omna[pii]"  — this pulls the compiled omna-pii-mask '
+            "wheel (the unified L1–L6 Rust engine)."
         )
 
 
