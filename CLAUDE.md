@@ -87,7 +87,7 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 - [x] Phase B: PyPI publish-readiness for v0.2.0 (2026-06-13) — see below
 - Phase E: Announce — X/Twitter post, Hacker News, Python communities
 
-## 2026-06-13 — Phase B: PyPI publish-readiness (v0.2.0) — DONE except the upload
+## 2026-06-13 — Phase B: PyPI publish-readiness (v0.2.0) — DONE (uploaded 2026-06-14)
 - [x] Bumped to **0.2.0** (0.1.0 is already on PyPI; re-upload fails). `__version__` + pyproject kept in lockstep, guarded by tests/test_packaging.py (which also queries live PyPI).
 - [x] **Fixed a real bare-install bug**: `numpy` + `rich` are imported at `import omna` time but were undeclared core deps → `pip install omna` crashed on import. Now core deps = `polars, numpy, rich`. Guard test added. (Caught by the clean-venv smoke; existing import-speed test missed it.)
 - [x] `[pii]` extra now depends on `omna-pii-mask>=0.2,<0.3` (was empty). pii.py error names `pip install "omna[pii]"`.
@@ -95,7 +95,7 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 - [x] Both wheels built + `twine check` PASSED. Clean-venv smoke (scripts/clean_venv_smoke.py): bare import (no heavy deps), hybrid search (exact code #1), mask model=False AND model=True (L3 bare-name redaction) all pass. **156 tests passing.**
 - [x] **Edge-case hardening (2026-06-14):** found + fixed a real `ask()` dead-end — it masks rows before the API by default (needs the engine) but `omna[ask]` didn't pull the engine and `df.omna.ask()` didn't expose the documented `mask_rows=False` escape (README documented a param that didn't exist). Fix: `[ask]` → engine; `df.omna.ask(..., mask_rows=…)`. Also verified across Python 3.10/3.11/3.12 (abi3 engine loads on all), `_score` stays cosine in hybrid mode, re-embed doesn't serve a stale index, secrets are never restorable (privacy invariant), and `omna[embed,pii,ask]==0.2.0` resolves end-to-end. New tests/test_edge_cases.py (+7).
 - [x] Runbook: docs/RELEASING-PYPI.md (engine-first publish order, manual + CI paths, ENGINE_PAT/PYPI_API_TOKEN secrets).
-- [ ] **THE UPLOAD (left to gaurav — irreversible)**: publish engine first, then omna. See docs/RELEASING-PYPI.md. TestPyPI dry-run skipped (no token in env).
+- [x] **THE UPLOAD — DONE 2026-06-14.** Both packages live on PyPI: `omna` 0.2.2 and `omna-pii-mask` 0.2.2 (engine published first per the runbook). Website omna.dev live (HTTP 200). Verified via live PyPI JSON API.
 - Superseded the old "v0.1.1" plan: the PII-engine upgrade already shipped in-tree (6-layer Rust engine, L3 in-process); this releases it as 0.2.0.
 
 ## 2026-06-10 — install-story + accuracy fixes (ship as v0.1.1)
