@@ -12,16 +12,20 @@ API is backward-compatible.
 
 ### Added
 
-- **Hybrid search.** `df.omna.search()` now fuses BM25 keyword matching with
-  semantic (embedding) similarity using Reciprocal Rank Fusion, and is hybrid by
-  **default**. Semantics catch meaning; BM25 catches rare exact tokens the
-  embeddings blur (part codes, IDs, surnames, acronyms), so an exact-term query
-  surfaces — and ranks first — even when pure-semantic search would bury it.
-  Results are ordered by fused relevance; the `_score` column is still the cosine
-  similarity. Pass `hybrid=False` for the prior pure-semantic behavior. BM25 and
-  RRF are pure-Python + numpy (no new dependencies), and the BM25 index is built
-  lazily from the already-saved column — **no change to the on-disk index format
-  and no re-embedding required for existing indexes**.
+- **Hybrid search — keyword matching now runs alongside meaning-based search.**
+  Before, `df.omna.search()` matched purely on *meaning* (embeddings), so a rare
+  exact term could rank low or be missed entirely. Now it matches *keywords* too
+  and merges both — so exact codes, IDs, names, and acronyms reliably surface.
+
+  | Your search | Before (semantic only) | Now (hybrid, default) |
+  |---|---|---|
+  | `"claim denied"` (by meaning) | finds related docs ✅ | finds related docs ✅ |
+  | `"XJ9000"` (an exact part code) | often buried or missed ⚠️ | **ranked #1** ✅ |
+
+  On by default. Pass `hybrid=False` for the old pure-semantic behavior. **No new
+  dependencies, no re-indexing — existing indexes keep working unchanged.** (Under
+  the hood: BM25 keyword scoring fused with semantic ranking via Reciprocal Rank
+  Fusion; `_score` is still the cosine similarity.)
 
 ### Removed
 
