@@ -87,6 +87,23 @@ Develop in Omna first. Sync to Omna-engine after every Rust change. Never edit O
 - [x] Phase B: PyPI publish-readiness for v0.2.0 (2026-06-13) — see below
 - Phase E: Announce — X/Twitter post, Hacker News, Python communities
 
+## 2026-07-07 — Community + Claude-for-OSS readiness (docs only, no code)
+Applying for the Claude for OSS program (6 months Claude Max for OSS maintainers).
+Repo-surface + community work to strengthen the application — no code/API change:
+- [x] Filled the blank `LICENSE` copyright holder → "The Omna Authors".
+- [x] Added `CONTRIBUTING.md` (bug reports, setup, tests, PR flow) — grows the
+      external-contributor count (a program eligibility door).
+- [x] Opened a community RFC: **issue #3** "scale local search toward a billion
+      rows — simplest idea wins" (labels: help wanted / enhancement / question),
+      to pull in outside contributors.
+- [x] Added `docs/scaling-to-a-billion-rows.md` (the three walls: embed-time,
+      ~3 TB storage, brute-force O(N) scan) + a README "Help wanted" section
+      linking both.
+- [x] Synced stale `uv.lock` to 0.2.2; committed the mask-rate benchmark script.
+- Application draft (narrative + facts) kept in the session scratchpad, not the repo.
+- NOTE: the `done` skill is wired to omna-workspace (MASTER.md); this repo tracks
+  state in CLAUDE.md + CHANGELOG.md, so the wrap-up pattern was applied here instead.
+
 ## 2026-06-13 — Phase B: PyPI publish-readiness (v0.2.0) — DONE (uploaded 2026-06-14)
 - [x] Bumped to **0.2.0** (0.1.0 is already on PyPI; re-upload fails). `__version__` + pyproject kept in lockstep, guarded by tests/test_packaging.py (which also queries live PyPI).
 - [x] **Fixed a real bare-install bug**: `numpy` + `rich` are imported at `import omna` time but were undeclared core deps → `pip install omna` crashed on import. Now core deps = `polars, numpy, rich`. Guard test added. (Caught by the clean-venv smoke; existing import-speed test missed it.)

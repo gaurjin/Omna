@@ -4,6 +4,25 @@ All notable changes to Omna are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Omna aims for
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Contributor guide + open scaling challenge.** New `CONTRIBUTING.md` (how to
+  report bugs, set up, run tests, open a PR) and a community RFC —
+  [issue #3](https://github.com/gaurjin/Omna/issues/3) plus
+  [docs/scaling-to-a-billion-rows.md](docs/scaling-to-a-billion-rows.md) — asking
+  how to scale local-first semantic search toward a billion rows. Docs/community
+  only; no code or API change.
+
+### Fixed
+
+- **License now names a copyright holder.**
+
+  | | Before | After |
+  |---|---|---|
+  | `LICENSE` line 3 | `Copyright (c) 2026` (holder blank) | `Copyright (c) 2026 The Omna Authors` |
+
 ## [0.2.2] — 2026-06-14
 
 ### Fixed

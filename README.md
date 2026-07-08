@@ -433,6 +433,19 @@ Star the repo to follow progress.
 
 ---
 
+## Help wanted — scaling toward a billion rows
+
+Omna is fast and fully local at 50k–500k rows. **How far can local-first
+semantic search go — a billion rows, on your own machine, no cloud?** That's an
+open challenge, and the simplest workable idea wins. You don't need to know the
+internals to pitch in.
+
+- Join the discussion: **[issue #3](https://github.com/gaurjin/Omna/issues/3)**
+- The three walls + idea directions: **[docs/scaling-to-a-billion-rows.md](https://github.com/gaurjin/Omna/blob/main/docs/scaling-to-a-billion-rows.md)**
+- New contributors welcome — see **[CONTRIBUTING.md](https://github.com/gaurjin/Omna/blob/main/CONTRIBUTING.md)**.
+
+---
+
 ## What's new
 
 The PII engine was rebuilt from a Presidio + spaCy wrapper into Omna's own
