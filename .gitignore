@@ -49,3 +49,4 @@ data/
 
 # Local build scratch (wheels built for smoke-testing)
 dist-test/
+dist-upload/   # local wheel staging; releases go through CI, never a local upload
