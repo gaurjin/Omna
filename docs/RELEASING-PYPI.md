@@ -38,16 +38,16 @@ resolve for everyone.
 ## Pre-flight (already done, re-runnable)
 
 ```bash
-cd ~/Developer/Omna
+cd ~/Developer/Omna\ Labs/Omna
 .venv/bin/python -m pytest -q                       # 147 pass
 # build both wheels into dist-test/ (gitignored scratch)
 maturin build --release --strip --out dist-test     # omna  -> omna-0.2.0-*.whl
-(cd ~/Developer/omna-workspace/bindings/omna-core-py && \
-   maturin build --release --strip --out ~/Developer/Omna/dist-test)  # engine -> omna_pii_mask-0.2.2-cp39-abi3-*.whl
+(cd ~/Developer/Omna\ Labs/omna-workspace/bindings/omna-core-py && \
+   maturin build --release --strip --out ~/Developer/Omna\ Labs/Omna/dist-test)  # engine -> omna_pii_mask-0.2.2-cp39-abi3-*.whl
 .venv/bin/python scripts/strip_sbom.py "dist-test/*.whl"   # drop the CycloneDX SBOM (binary-only: don't ship the dep manifest)
 .venv/bin/twine check dist-test/*.whl               # both PASSED
 # end-to-end in a fresh venv (bare import, hybrid search, mask model=False/True):
-cd /tmp && /tmp/omna-fresh/bin/python ~/Developer/Omna/scripts/clean_venv_smoke.py
+cd /tmp && /tmp/omna-fresh/bin/python ~/Developer/Omna\ Labs/Omna/scripts/clean_venv_smoke.py
 ```
 
 ## Path A — GitHub Actions (recommended; builds all platforms)
@@ -56,7 +56,7 @@ Each repo has a tag-triggered release workflow. CI builds every wheel (you can't
 build manylinux locally on a Mac) and publishes via the `PYPI_API_TOKEN` secret
 in each repo's `pypi` environment.
 
-1. **Engine first** — in `~/Developer/omna-workspace`:
+1. **Engine first** — in `~/Developer/Omna Labs/omna-workspace`:
    ```bash
    git tag omna-pii-mask-v0.2.2 && git push origin omna-pii-mask-v0.2.2
    ```
@@ -64,7 +64,7 @@ in each repo's `pypi` environment.
    x86_64+aarch64 abi3 → publish. Validate the aarch64-linux cell on this first
    run — it cross-builds under QEMU with `ort` downloading an aarch64 runtime.)
 
-2. **Then the library** — in `~/Developer/Omna`:
+2. **Then the library** — in `~/Developer/Omna Labs/Omna`:
    ```bash
    git tag v0.2.0 && git push origin v0.2.0
    ```
@@ -84,7 +84,7 @@ Use only if you accept macOS-only wheels for this release (Linux users would fal
 back to… nothing, since there's no sdist). Prefer Path A.
 
 ```bash
-cd ~/Developer/Omna
+cd ~/Developer/Omna\ Labs/Omna
 .venv/bin/python scripts/strip_sbom.py "dist-test/*.whl"   # IMPORTANT: strip the SBOM first
 # 1) engine FIRST
 .venv/bin/twine upload dist-test/omna_pii_mask-0.2.2-*.whl
@@ -105,7 +105,7 @@ single irreversible step — it permanently claims the version.**
 
 ```bash
 python -m venv /tmp/verify && /tmp/verify/bin/pip install "omna[embed,pii,ask]"
-cd /tmp && /tmp/verify/bin/python ~/Developer/Omna/scripts/clean_venv_smoke.py
+cd /tmp && /tmp/verify/bin/python ~/Developer/Omna\ Labs/Omna/scripts/clean_venv_smoke.py
 ```
 
 That's the whole loop: **bump → build → twine check → engine first → then omna → verify.**

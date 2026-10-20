@@ -3,7 +3,7 @@
 Run with the clean-venv interpreter from a directory OUTSIDE the source tree so
 it exercises the INSTALLED wheel, not ./omna/:
 
-    cd /tmp && /tmp/omna-fresh/bin/python ~/Developer/Omna/scripts/clean_venv_smoke.py
+    cd /tmp && /tmp/omna-fresh/bin/python ~/Developer/Omna\ Labs/Omna/scripts/clean_venv_smoke.py
 
 Must be a real file (not piped via stdin): mask_pii(model=False) uses a
 ProcessPoolExecutor, and macOS 'spawn' re-imports __main__ in workers.

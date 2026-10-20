@@ -2,7 +2,7 @@
 Fast path (L1+L2, model=False) on a large slice, smart path (L3, model=True)
 on a small slice. Real numbers for pipeline.md — no estimates.
 
-Run:  ~/Developer/Omna/.venv/bin/python scripts/measure_mask_rate.py
+Run:  ~/Developer/Omna\ Labs/Omna/.venv/bin/python scripts/measure_mask_rate.py
 
 NOTE: the main-guard is REQUIRED — mask_pii uses a ProcessPoolExecutor, and on
 macOS (spawn) every worker re-imports this module; without the guard each worker

@@ -97,7 +97,7 @@ The Rust code must be present to build the wheel with maturin. `maturin develop 
 
 ---
 
-### ~/Developer/Omna-engine  (private repo: github.com/gaurjin/Omna-engine)
+### ~/Developer/Omna Labs/Omna-engine  (private repo: github.com/gaurjin/Omna-engine)
 
 This is the **IP archive** — source of truth for the proprietary Rust code.
 
@@ -149,19 +149,19 @@ Step-by-step after a Rust change:
 
 ```bash
 # 1. Make the change in Omna/src/ and verify it works
-cd ~/Developer/Omna
+cd ~/Developer/Omna\ Labs/Omna
 # ... edit src/lib.rs or src/similarity.rs ...
 maturin develop --release
 uv run pytest tests/ -q
 
 # 2. Copy changed files to Omna-engine
-cp src/lib.rs ~/Developer/Omna-engine/src/
-cp src/similarity.rs ~/Developer/Omna-engine/src/
-cp Cargo.toml ~/Developer/Omna-engine/Cargo.toml
-cp Cargo.lock ~/Developer/Omna-engine/Cargo.lock
+cp src/lib.rs ~/Developer/Omna\ Labs/Omna-engine/src/
+cp src/similarity.rs ~/Developer/Omna\ Labs/Omna-engine/src/
+cp Cargo.toml ~/Developer/Omna\ Labs/Omna-engine/Cargo.toml
+cp Cargo.lock ~/Developer/Omna\ Labs/Omna-engine/Cargo.lock
 
 # 3. Commit to the private engine repo
-cd ~/Developer/Omna-engine
+cd ~/Developer/Omna\ Labs/Omna-engine
 git add src/ Cargo.toml Cargo.lock
 git commit -m "sync: ..."
 git push
@@ -191,7 +191,7 @@ Run the copy commands above before the next release.
 ## Machine
 MacBook Air M5
 User: gaurav
-Project path: ~/Developer/Omna
+Project path: ~/Developer/Omna Labs/Omna
 
 ## Repositories
 - Public (Python layer): https://github.com/gaurjin/Omna
