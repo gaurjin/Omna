@@ -6,6 +6,21 @@ All notable changes to Omna are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-10-24
+
+### Security
+
+- **Rust kernel's Python bridge updated (pyo3 0.23 → 0.29).** Closes two pyo3
+  advisories and one in a threading dependency. None of the affected functions
+  are called by Omna's code. Search results are identical; speed is unchanged.
+
+  | | Before | After |
+  |---|---|---|
+  | pyo3 | 0.23.5 | 0.29.3 |
+  | `cargo audit` | 3 vulnerabilities (RUSTSEC-2025-0020, RUSTSEC-2026-0177, RUSTSEC-2026-0204) | 0 |
+  | Search over 200k × 768 vectors | 17.70 ms | 17.78 ms (same top-10) |
+  | Wrong-type argument error, Python 3.10 | `argument 'a': must be real number, not str` | `must be real number, not str` (3.11+ shows the argument name as a note) |
+
 ### Added
 
 - **Contributor guide + open scaling challenge.** New `CONTRIBUTING.md` (how to
@@ -16,6 +31,12 @@ All notable changes to Omna are documented here. The format follows
   only; no code or API change.
 
 ### Fixed
+
+- **`top_k_flat` / `top_k_flat_np` no longer crash on `dim=0`.**
+
+  | | Before | After |
+  |---|---|---|
+  | `top_k_flat_np(q, emb, 0, k)` | `PanicException: attempt to divide by zero` | `[]` (same as an all-zero query) |
 
 - **License now names a copyright holder.**
 
