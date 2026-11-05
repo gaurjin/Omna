@@ -37,7 +37,7 @@ pip install -e ".[all]"
 pytest tests/ -q
 ```
 
-- Supported: Python 3.10–3.12 on macOS (Apple Silicon) or Linux.
+- Supported: Python 3.11–3.14 on macOS (Apple Silicon) or Linux.
 - The on-device PII model (`mask_pii(model=True)`) downloads once on first use.
 
 ## Pull requests

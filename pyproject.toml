@@ -4,10 +4,10 @@ build-backend = "maturin"
 
 [project]
 name = "omna"
-version = "0.2.3"
+version = "0.2.4"
 description = "Semantic search, PII masking, and schema understanding for Polars DataFrames"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "gaurav", email = "gaurjin@gmail.com" },
@@ -24,9 +24,10 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",

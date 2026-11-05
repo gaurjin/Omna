@@ -6,6 +6,20 @@ All notable changes to Omna are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-11-05
+
+### Changed
+
+- **Supported Python versions: 3.11–3.14.** Wheels are now built for Python
+  3.13 and 3.14, and no longer for 3.10 (Python 3.10 stopped getting fixes in
+  October 2026). The full test suite passes on each supported version.
+
+  | | Before | After |
+  |---|---|---|
+  | Supported Python | 3.10, 3.11, 3.12 | 3.11, 3.12, 3.13, 3.14 |
+  | `requires-python` | `>=3.10` | `>=3.11` |
+  | Wheels per release | 12 + 1 sdist | 16 + 1 sdist |
+
 ## [0.2.3] — 2026-10-24
 
 ### Security

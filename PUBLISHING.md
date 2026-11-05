@@ -79,19 +79,21 @@ That's it. Pushing the tag triggers the GitHub Actions workflow automatically.
 The workflow runs these jobs in order:
 
 ```
-build-macos (6 jobs)      build-linux (2 jobs)      build-sdist (1 job)
-aarch64 · py3.10          x86_64 linux              source tarball
-aarch64 · py3.11          aarch64 linux (QEMU)
-aarch64 · py3.12
-x86_64  · py3.10
+build-macos (8 jobs)      build-linux (2 jobs)      build-sdist (1 job)
+aarch64 · py3.11          x86_64 linux              source tarball
+aarch64 · py3.12          aarch64 linux (QEMU)
+aarch64 · py3.13
+aarch64 · py3.14
 x86_64  · py3.11
 x86_64  · py3.12
+x86_64  · py3.13
+x86_64  · py3.14
          │                        │                        │
          └────────────────────────┴────────────────────────┘
                                   │
                             publish (1 job)
                    only runs if ALL builds pass
-                   uploads 12 wheels + 1 sdist to PyPI
+                   uploads 16 wheels + 1 sdist to PyPI
 ```
 
 To watch it run: go to **github.com/gaurjin/omna** → **Actions** tab → click
