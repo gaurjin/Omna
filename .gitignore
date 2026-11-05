@@ -51,3 +51,6 @@ data/
 dist-test/
 # local wheel staging; releases go through CI, never a local upload
 dist-upload/
+
+# Claude Code instructions for the maintainer only (kept off GitHub; backup in the private omna-workspace repo)
+CLAUDE.local.md
