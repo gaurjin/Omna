@@ -55,7 +55,7 @@ for col in df.columns:
 df.omna.pii_report()          # audit — find every leak, every column
 df.omna.mask_pii()            # redact — one line, full audit log
 df.omna.mask_pii(model=True)  # + on-device AI model for contextual PII
-# A six-layer engine: regex + checksum-validated IDs + 220+ secret rules +
+# A six-layer engine: regex + checksum-validated IDs + 240 secret rules +
 # an on-device AI model — the SAME Rust engine as the Omna Mac app & extension.
 # Reversible [PERSON_1] tokens; secrets always irreversibly redacted. Local.
 # Benchmarked openly on Gretel (core-PII recall 0.84 with the model, up from
@@ -85,7 +85,7 @@ masking is a **six-layer detection engine** (pure Rust, fully on-device) — the
 same engine that powers the Omna Mac app and browser extension:
 
 - **L1 — patterns + checksum validators:** emails, SSNs, cards (Luhn), IBANs, and 30+ international IDs *verified*, not just pattern-matched
-- **L2 — secrets:** 220+ rules (AWS keys, GitHub tokens, JWTs, private keys) with entropy checks
+- **L2 — secrets:** 240 rules (AWS keys, GitHub tokens, JWTs, private keys) with entropy checks
 - **L3 — on-device AI model** (`mask_pii(model=True)`): catches contextual PII no regex can — bare names, addresses, medical context
 - **L4–L6:** entity resolution, reversible `[PERSON_1]` tokens (secrets always irreversibly redacted), and a full audit trail
 
@@ -98,7 +98,7 @@ No cloud, no API key, no data leaves your machine.
 | Core-PII recall | 0.69 | **0.84** |
 | All-types recall | 0.35 | **0.79** |
 | All-types F1 | 0.50 | **0.82** |
-| Types · secret rules · validated IDs | ~17 · 0 · none | **30+ · 220+ · 30+** |
+| Types · secret rules · validated IDs | ~17 · 0 · none | **30+ · 240 · 30+** |
 
 ```python
 df.omna.pii_report()          # audit — every PII column, with confidence
@@ -286,7 +286,7 @@ Scans every string column. Returns hit rates, PII types, and confidence scores. 
 clean = df.omna.mask_pii()
 # → Omna's own six-layer Rust engine (same kernel as the Mac app + browser
 #   extension): reversible [PERSON_1]-style tokens; credentials/secrets
-#   always irreversibly [REDACTED:KIND]; checksum-validated IDs; 220+ secret
+#   always irreversibly [REDACTED:KIND]; checksum-validated IDs; 240 secret
 #   rules. No heavy Python ML dependencies.
 # → audit log saved to .omna/pii_audit.parquet automatically
 
@@ -296,7 +296,7 @@ clean = df.omna.mask_pii(model=True)
 # Requires the omna_pii_mask wheel (built from omna-workspace); see CHANGELOG.md.
 ```
 
-Detects: `PERSON` `EMAIL` `PHONE` `CREDIT_CARD` `US_SSN` `IP_ADDRESS` `IBAN` `MEDICAL_RECORD_NUMBER` `BANK_ACCOUNT`, 220+ secret types, and 30+ international IDs — checksum-validated where applicable.
+Detects: `PERSON` `EMAIL` `PHONE` `CREDIT_CARD` `US_SSN` `IP_ADDRESS` `IBAN` `MEDICAL_RECORD_NUMBER` `BANK_ACCOUNT`, 240 secret types, and 30+ international IDs — checksum-validated where applicable.
 
 ```python
 # Add the on-device AI layer (L3) for contextual PII regex can't catch —
@@ -401,7 +401,7 @@ Those are vector databases. Omna is a Polars plugin. If your data already lives 
 <details>
 <summary><b>What PII types does Omna detect?</b></summary>
 
-`PERSON`, `EMAIL`, `PHONE`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN`, `MEDICAL_RECORD_NUMBER`, `BANK_ACCOUNT`, 220+ secret types (API keys, tokens), and 30+ international IDs, and more. Detection runs on Omna's own six-layer Rust engine — fully local, no heavy Python ML dependencies.
+`PERSON`, `EMAIL`, `PHONE`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN`, `MEDICAL_RECORD_NUMBER`, `BANK_ACCOUNT`, 240 secret types (API keys, tokens), and 30+ international IDs, and more. Detection runs on Omna's own six-layer Rust engine — fully local, no heavy Python ML dependencies.
 
 </details>
 
